@@ -1,0 +1,21 @@
+{
+  "name": "claude-skills",
+  "owner": {
+    "name": "Jitesh Gaikwad"
+  },
+  "metadata": {
+    "description": "Custom Claude Code skills for specialized domains",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "amazon-connect",
+      "description": "Amazon Connect contact center — flows, routing, Contact Lens, metrics, Customer Profiles, Cases, Q Connect, AI agents, Lambda integration, streaming, EventBridge, and AWS SDK v3 API reference",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/amazon-connect"
+      ]
+    }
+  ]
+}
