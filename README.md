@@ -1,5 +1,7 @@
 # Claude Skills
 
+[![skills.sh](https://skills.sh/b/JiteshGaikwad/claude-skills)](https://skills.sh/JiteshGaikwad/claude-skills)
+
 > Custom skills for [Claude Code](https://claude.ai/claude-code). For information about the Agent Skills standard, see [agentskills.io](http://agentskills.io).
 
 Skills are folders of instructions and resources that Claude loads dynamically to improve performance on specialized tasks. Learn more:
