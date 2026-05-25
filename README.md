@@ -98,4 +98,4 @@ description: A clear description of what this skill does and when to use it
 
 ## Note
 
-These skills contain structured reference documentation derived from publicly available AWS documentation. No proprietary code or data is included.
+These skills contain structured reference documentation derived from publicly available sources. No proprietary code or data is included.
