@@ -14,14 +14,14 @@ A collection of custom [Claude Code](https://claude.ai/claude-code) skills for s
 
 ```bash
 # Clone the entire repo into your personal skills directory
-git clone https://github.com/<your-username>/claude-skills.git ~/.claude/skills/claude-skills
+git clone https://github.com/JiteshGaikwad/claude-skills.git ~/.claude/skills/claude-skills
 ```
 
 ### Option 2: Project-level (single project)
 
 ```bash
 # Clone into your project's .claude/skills directory
-git clone https://github.com/<your-username>/claude-skills.git .claude/skills/claude-skills
+git clone https://github.com/JiteshGaikwad/claude-skills.git .claude/skills/claude-skills
 ```
 
 ### Option 3: Single skill only
@@ -74,6 +74,6 @@ my-new-skill/
 
 See [Claude Code skill docs](https://docs.anthropic.com/en/docs/claude-code/skills) for the SKILL.md format.
 
-## License
+## Note
 
-MIT
+These skills contain structured reference documentation derived from publicly available AWS documentation. No proprietary code or data is included.
