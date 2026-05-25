@@ -1,0 +1,127 @@
+---
+name: amazon-connect
+description: >
+  Amazon Connect contact center — flows, routing, Contact Lens, metrics, Customer Profiles,
+  Cases, Q Connect, AI agents, Lambda integration, streaming, EventBridge, and SDK/API reference.
+  Use when working on Amazon Connect configuration, contact flows, real-time/historical metrics,
+  Contact Lens analytics, agent workspace development, Kinesis streaming, or AWS SDK v3
+  JavaScript/TypeScript code that interacts with Connect services.
+---
+
+# Amazon Connect — Comprehensive Skill Reference
+
+Amazon Connect (now "Amazon Connect Customer") is an omnichannel cloud contact center with 9 sub-services:
+
+| Service | What It Does |
+|---------|-------------|
+| **Connect Service** | Core contact center — flows, routing, queues, users, metrics, instances |
+| **Contact Lens** | Conversational analytics — sentiment, transcription, categories, redaction |
+| **Customer Profiles** | Unified customer data — identity resolution, integrations, segments |
+| **Cases** | Case management — domains, templates, layouts, rules |
+| **Q Connect** | AI-powered agent assist — knowledge bases, AI agents, prompts, guardrails |
+| **Participant Service** | Chat/messaging participant management — messages, events, transcripts |
+| **Outbound Campaigns** | High-volume outbound — predictive dialer, ML answering machine detection |
+| **App Integrations** | Third-party data/event integrations |
+| **Connect AI Agents** | Agentic self-service + agent-assist — MCP tools, multi-step reasoning |
+
+## SDK
+
+All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only:
+- `@aws-sdk/client-connect`
+- `@aws-sdk/client-connect-contact-lens`
+- `@aws-sdk/client-customer-profiles`
+- `@aws-sdk/client-connectcases`
+- `@aws-sdk/client-qconnect`
+- `@aws-sdk/client-connectcampaigns` / `@aws-sdk/client-connectcampaignsv2`
+- `@aws-sdk/client-connectparticipant`
+
+## Reference File Index
+
+### Core Infrastructure
+- [core/instances.md](core/instances.md) — Instance management, attributes, storage configs
+- [core/telephony.md](core/telephony.md) — Phone numbers (DID/toll-free, 110+ countries)
+- [core/security.md](core/security.md) — IAM, encryption, compliance, auth profiles
+- [core/global-resiliency.md](core/global-resiliency.md) — Multi-region, traffic distribution
+- [core/network-requirements.md](core/network-requirements.md) — CCP network setup, firewall, ports
+
+### Contact Flows
+- [flows/overview.md](flows/overview.md) — Flow designer, types, modules, prompts
+- [flows/blocks.md](flows/blocks.md) — All 53 flow blocks reference
+- [flows/flow-language.md](flows/flow-language.md) — Programmatic JSON (56 action types)
+- [flows/lambda-integration.md](flows/lambda-integration.md) — Lambda event/response, timeouts
+- [flows/contact-attributes.md](flows/contact-attributes.md) — All attribute types
+- [flows/media-streaming.md](flows/media-streaming.md) — Kinesis Video Streams
+- [flows/nova-sonic.md](flows/nova-sonic.md) — Nova Sonic Speech-to-Speech
+
+### Channels
+- [channels/voice.md](channels/voice.md) — Softphone, recording, audio enhancement
+- [channels/chat-sms.md](channels/chat-sms.md) — Chat widget, SMS, WhatsApp, persistent chat
+- [channels/email.md](channels/email.md) — SES integration, threading, templates
+- [channels/tasks.md](channels/tasks.md) — Task management, templates, automation
+- [channels/web-video.md](channels/web-video.md) — WebRTC, in-app calling, video
+
+### AI & Automation
+- [ai/connect-ai-agents.md](ai/connect-ai-agents.md) — Agentic self-service, agent-assist, prompts, guardrails, MCP tools
+- [ai/q-connect.md](ai/q-connect.md) — Amazon Q Connect, knowledge bases, assistants
+- [ai/lex-bots.md](ai/lex-bots.md) — Lex integration, conversational IVR
+- [ai/outbound-campaigns.md](ai/outbound-campaigns.md) — Predictive dialer, campaigns v1+v2
+- [ai/generative-ai.md](ai/generative-ai.md) — Post-contact summaries, gen-AI evaluations
+
+### Analytics & Metrics
+- [analytics/contact-lens.md](analytics/contact-lens.md) — Sentiment, transcription, categories
+- [analytics/real-time-metrics.md](analytics/real-time-metrics.md) — RT metric definitions
+- [analytics/historical-metrics.md](analytics/historical-metrics.md) — 80+ historical metrics
+- [analytics/dashboards-reports.md](analytics/dashboards-reports.md) — Dashboards, custom metrics
+- [analytics/data-lake.md](analytics/data-lake.md) — Athena/QuickSight, zero-ETL
+- [analytics/contact-records.md](analytics/contact-records.md) — CTR data model, contact states
+- [analytics/evaluations.md](analytics/evaluations.md) — Eval forms, screen recording, coaching
+- [analytics/monitoring.md](analytics/monitoring.md) — CloudWatch (25 metrics), CloudTrail
+- [analytics/contact-search.md](analytics/contact-search.md) — Search, in-progress management
+
+### Data Streaming
+- [streaming/data-streaming.md](streaming/data-streaming.md) — Kinesis setup, KMS encryption
+- [streaming/agent-event-streams.md](streaming/agent-event-streams.md) — Agent events data model
+- [streaming/contact-lens-streams.md](streaming/contact-lens-streams.md) — Real-time CL via Kinesis
+- [streaming/eventbridge-events.md](streaming/eventbridge-events.md) — Contact events (11 types)
+
+### Agent Experience
+- [agent-experience/workspace.md](agent-experience/workspace.md) — Workspace architecture
+- [agent-experience/step-by-step-guides.md](agent-experience/step-by-step-guides.md) — No-code UI builder
+- [agent-experience/ccp.md](agent-experience/ccp.md) — Contact Control Panel usage
+- [agent-experience/wfm.md](agent-experience/wfm.md) — Forecasting, scheduling, adherence
+- [agent-experience/developer-guide.md](agent-experience/developer-guide.md) — 3P apps/services, SDK (10 clients, 117 methods)
+- [agent-experience/troubleshooting.md](agent-experience/troubleshooting.md) — CCP issues, diagnostics
+
+### Data Services
+- [data/customer-profiles.md](data/customer-profiles.md) — Identity resolution, integrations
+- [data/cases.md](data/cases.md) — Domains, templates, layouts, rules
+- [data/data-tables.md](data/data-tables.md) — Data tables in flows
+
+### Testing
+- [testing/simulation.md](testing/simulation.md) — Visual test designer, flow simulation
+
+### API Reference
+- [api/overview.md](api/overview.md) — Architecture, best practices, common errors
+- [api/connect-service-api.md](api/connect-service-api.md) — 200+ actions, 530 data types
+- [api/contact-lens-api.md](api/contact-lens-api.md) — 2 actions, 8 data types
+- [api/customer-profiles-api.md](api/customer-profiles-api.md) — 80+ actions, 130+ data types
+- [api/cases-api.md](api/cases-api.md) — 30+ actions, 80+ data types
+- [api/q-connect-api.md](api/q-connect-api.md) — 70+ actions, 200+ data types
+- [api/participant-api.md](api/participant-api.md) — 11 actions, 17 data types
+- [api/campaigns-api.md](api/campaigns-api.md) — V1+V2, 85 data types
+- [api/app-integrations-api.md](api/app-integrations-api.md) — 23 actions, 20 data types
+- [api/rules-language.md](api/rules-language.md) — Rules Function Language DSL
+- [api/testing-language.md](api/testing-language.md) — Testing Language DSL
+- [api/sdk-patterns.md](api/sdk-patterns.md) — JS SDK v3 patterns
+
+### Release Notes
+- [recent-changes.md](recent-changes.md) — Latest features (2026)
+
+## Living Documentation
+
+When information in this skill seems outdated, a feature is unfamiliar, or the user asks about something recent, check these canonical doc history pages:
+
+- **Admin Guide changelog**: https://docs.aws.amazon.com/connect/latest/adminguide/doc-history.html
+- **Agent Workspace Dev Guide changelog**: https://docs.aws.amazon.com/agentworkspace/latest/devguide/doc-history.html
+
+After finding new information, update the relevant skill reference file so future queries don't need to re-fetch.
