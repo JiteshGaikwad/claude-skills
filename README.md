@@ -1,34 +1,37 @@
-# Claude Code Skills
+# Claude Skills
 
-A collection of custom [Claude Code](https://claude.ai/claude-code) skills for specialized domains.
+> Custom skills for [Claude Code](https://claude.ai/claude-code). For information about the Agent Skills standard, see [agentskills.io](http://agentskills.io).
+
+Skills are folders of instructions and resources that Claude loads dynamically to improve performance on specialized tasks. Learn more:
+- [What are skills?](https://support.claude.com/en/articles/12512176-what-are-skills)
+- [Using skills in Claude](https://support.claude.com/en/articles/12512180-using-skills-in-claude)
+- [Creating custom skills](https://support.claude.com/en/articles/12512198-creating-custom-skills)
 
 ## Available Skills
 
 | Skill | Description | Files |
 |-------|-------------|-------|
-| [amazon-connect](amazon-connect/) | Amazon Connect contact center — flows, routing, Contact Lens, metrics, Customer Profiles, Cases, Q Connect, AI agents, Lambda integration, streaming, EventBridge, and AWS SDK v3 API reference | 59 |
+| [amazon-connect](skills/amazon-connect/) | Amazon Connect contact center — flows, routing, Contact Lens, metrics, Customer Profiles, Cases, Q Connect, AI agents, Lambda integration, streaming, EventBridge, and AWS SDK v3 API reference | 59 |
 
 ## Installation
 
-### Option 1: Personal skills (all projects)
+### All skills
 
 ```bash
-# Clone the entire repo into your personal skills directory
 git clone https://github.com/JiteshGaikwad/claude-skills.git ~/.claude/skills/claude-skills
 ```
 
-### Option 2: Project-level (single project)
-
-```bash
-# Clone into your project's .claude/skills directory
-git clone https://github.com/JiteshGaikwad/claude-skills.git .claude/skills/claude-skills
-```
-
-### Option 3: Single skill only
+### Single skill only
 
 ```bash
 # Copy just the skill you need
-cp -r amazon-connect/ ~/.claude/skills/amazon-connect
+cp -r skills/amazon-connect/ ~/.claude/skills/amazon-connect
+```
+
+### Project-level (single project)
+
+```bash
+git clone https://github.com/JiteshGaikwad/claude-skills.git .claude/skills/claude-skills
 ```
 
 ## Usage
@@ -39,40 +42,59 @@ Skills auto-trigger based on conversation context, or invoke manually:
 /amazon-connect
 ```
 
-## Structure
-
-Each skill is a self-contained directory with a `SKILL.md` entry point:
+## Repository Structure
 
 ```
 claude-skills/
 ├── README.md
-├── amazon-connect/
-│   ├── SKILL.md              # Entry point + routing index
-│   ├── core/                 # Instance, telephony, security
-│   ├── flows/                # Flow designer, blocks, Lambda
-│   ├── channels/             # Voice, chat, email, tasks
-│   ├── ai/                   # AI agents, Q Connect, Lex
-│   ├── analytics/            # Contact Lens, metrics, dashboards
-│   ├── streaming/            # Kinesis, EventBridge, agent events
-│   ├── agent-experience/     # Workspace, CCP, developer guide
-│   ├── data/                 # Customer Profiles, Cases
-│   ├── testing/              # Flow simulation
-│   ├── api/                  # All 9 service APIs + SDK patterns
-│   └── recent-changes.md     # Latest features
-└── <future-skill>/
-    └── SKILL.md
+└── skills/
+    ├── amazon-connect/
+    │   ├── SKILL.md              # Entry point + routing index
+    │   ├── core/                 # Instance, telephony, security
+    │   ├── flows/                # Flow designer, blocks, Lambda
+    │   ├── channels/             # Voice, chat, email, tasks
+    │   ├── ai/                   # AI agents, Q Connect, Lex
+    │   ├── analytics/            # Contact Lens, metrics, dashboards
+    │   ├── streaming/            # Kinesis, EventBridge, agent events
+    │   ├── agent-experience/     # Workspace, CCP, developer guide
+    │   ├── data/                 # Customer Profiles, Cases
+    │   ├── testing/              # Flow simulation
+    │   ├── api/                  # All 9 service APIs + SDK patterns
+    │   └── recent-changes.md     # Latest features
+    └── <future-skill>/
+        └── SKILL.md
 ```
 
 ## Adding New Skills
 
-Create a new directory at the repo root with a `SKILL.md`:
+Create a new directory under `skills/` with a `SKILL.md`:
 
 ```
-my-new-skill/
+skills/my-new-skill/
 └── SKILL.md
 ```
 
-See [Claude Code skill docs](https://docs.anthropic.com/en/docs/claude-code/skills) for the SKILL.md format.
+Frontmatter template:
+
+```yaml
+---
+name: my-skill-name
+description: A clear description of what this skill does and when to use it
+---
+
+# Skill Title
+
+## Instructions
+[Core behavior and approach]
+
+## Examples
+- Example usage 1
+- Example usage 2
+
+## Guidelines
+- Guideline 1
+- Guideline 2
+```
 
 ## Note
 

@@ -117,6 +117,23 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 ### Release Notes
 - [recent-changes.md](recent-changes.md) — Latest features (2026)
 
+## Examples
+
+- "How do I invoke a Lambda function from a contact flow?" → Read `flows/lambda-integration.md`
+- "What real-time metrics can I track?" → Read `analytics/real-time-metrics.md`
+- "How do I set up agentic self-service with MCP tools?" → Read `ai/connect-ai-agents.md`
+- "Show me how to use GetMetricDataV2 with the JS SDK" → Read `api/sdk-patterns.md`
+- "What EventBridge events does Connect emit?" → Read `streaming/eventbridge-events.md`
+- "How do I build a 3P app for the agent workspace?" → Read `agent-experience/developer-guide.md`
+
+## Guidelines
+
+- All code examples must use AWS SDK v3 for JavaScript/TypeScript — never Java, Python, Go, or .NET
+- Voice ID is excluded (EOL May 2026) — do not reference it
+- When answering, read the relevant sub-file first rather than guessing from the routing index
+- If a feature seems unfamiliar or recent, check the Living Documentation changelog URLs below
+- Reference files are loaded on-demand — not all 59 files at once
+
 ## Living Documentation
 
 When information in this skill seems outdated, a feature is unfamiliar, or the user asks about something recent, check these canonical doc history pages:
