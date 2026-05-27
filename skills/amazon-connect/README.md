@@ -2,14 +2,14 @@
 
 [![skills.sh](https://skills.sh/b/JiteshGaikwad/claude-skills)](https://skills.sh/JiteshGaikwad/claude-skills)
 
-A comprehensive Claude Code skill covering the entire Amazon Connect contact center ecosystem — 59 reference files, 15,600+ lines of structured documentation.
+A comprehensive Claude Code skill covering the entire Amazon Connect contact center ecosystem — 60 reference files, 16,000+ lines of structured documentation.
 
 ## What's Covered
 
 | Section | Files | Coverage |
 |---------|-------|----------|
 | **Core** | 5 | Instances, telephony, security, global resiliency, network requirements |
-| **Flows** | 7 | Flow designer, 53 blocks, flow language (56 action types), Lambda integration, contact attributes, media streaming, Nova Sonic |
+| **Flows** | 8 | Flow designer, 53 blocks, flow language (56 action types), Lambda integration, contact attributes, media streaming, Nova Sonic, proficiency-based routing |
 | **Channels** | 5 | Voice, chat/SMS, email, tasks, web/video calling |
 | **AI** | 5 | Connect AI agents (12 prompt types, 10 agent types, MCP tools), Q Connect, Lex bots, outbound campaigns, generative AI |
 | **Analytics** | 9 | Contact Lens, real-time metrics, 80+ historical metrics, dashboards, data lake, CTR data model, evaluations, monitoring (25 CloudWatch metrics), contact search |

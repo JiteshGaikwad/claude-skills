@@ -52,6 +52,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [flows/contact-attributes.md](flows/contact-attributes.md) — All attribute types
 - [flows/media-streaming.md](flows/media-streaming.md) — Kinesis Video Streams
 - [flows/nova-sonic.md](flows/nova-sonic.md) — Nova Sonic Speech-to-Speech
+- [flows/proficiency-routing.md](flows/proficiency-routing.md) — Proficiency-based routing, step waterfall, preferred agent, Lambda JSON
 
 ### Channels
 - [channels/voice.md](channels/voice.md) — Softphone, recording, audio enhancement
@@ -125,6 +126,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - "Show me how to use GetMetricDataV2 with the JS SDK" → Read `api/sdk-patterns.md`
 - "What EventBridge events does Connect emit?" → Read `streaming/eventbridge-events.md`
 - "How do I build a 3P app for the agent workspace?" → Read `agent-experience/developer-guide.md`
+- "How do I route contacts based on agent skills/language?" → Read `flows/proficiency-routing.md`
 
 ## Guidelines
 
