@@ -58,6 +58,8 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [flows/proficiency-routing.md](flows/proficiency-routing.md) — Proficiency-based routing, step waterfall, preferred agent, Lambda JSON
 - [flows/default-flows.md](flows/default-flows.md) — All 9 default flows with blocks, triggers, channel support
 - [flows/sample-flows.md](flows/sample-flows.md) — All 13 sample flows with step-by-step structure
+- [flows/flow-designer.md](flows/flow-designer.md) — Mini-map, custom block names, undo/redo, notes, copy/paste, archive/delete/restore, version control
+- [flows/flow-best-practices.md](flows/flow-best-practices.md) — Flow best practices, flow logs (CloudWatch), contact initiation methods (13 types)
 - [flows/flow-logging.md](flows/flow-logging.md) — CloudWatch Logs setup, log format, troubleshooting
 - [flows/encryption.md](flows/encryption.md) — Sensitive input encryption, key management, PCI compliance
 
