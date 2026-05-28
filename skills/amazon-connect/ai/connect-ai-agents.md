@@ -408,3 +408,22 @@ The legacy self-service approach used Amazon Lex bots with static intents and sl
 - Cannot dynamically adapt to novel customer requests
 
 **Recommendation**: Use the agentic self-service approach for all new implementations. Migrate existing legacy bots when feasible. The agentic approach provides better customer experience, lower maintenance burden, and access to all new AI features.
+
+### Multiple Knowledge Base Setup
+- Create separate KBs for different topics (billing, technical support, policies)
+- Tag KBs with metadata for content segmentation
+- AI agent queries relevant KB based on contact context and intent
+- Best practice: segment by department or product line, not by document type
+- Use `CreateContentAssociation` to link specific KBs to specific AI agents
+
+### Model Upgrade Guide
+| Model | Best For | Availability |
+|-------|---------|-------------|
+| Claude Sonnet | Complex reasoning, nuanced responses | Select regions |
+| Amazon Nova Pro | General-purpose, low latency | All Connect regions |
+| Claude Haiku | Fast responses, simple queries | Select regions |
+
+- Upgrade via `UpdateAIAgent` API — change the model reference in the agent config
+- Test in non-production first — different models may interpret prompts differently
+- No downtime during model switch — takes effect on next contact
+- Rollback: revert to previous model version via `UpdateAIAgent`

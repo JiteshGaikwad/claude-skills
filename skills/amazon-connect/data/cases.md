@@ -266,6 +266,145 @@ Quotas can be increased via AWS Service Quotas.
 
 All APIs are available via `@aws-sdk/client-connectcases`.
 
+## Case Assignment
+
+Cases can be assigned to agents automatically or manually.
+
+### Auto-Assignment
+
+Configure assignment rules to route cases automatically based on queue membership, agent skills, or round-robin distribution:
+
+- **Queue-based** -- assign cases to agents in a specific queue
+- **Skill-based** -- match case attributes (e.g., language, product line) to agent skills
+- **Round-robin** -- distribute cases evenly across available agents
+
+### Manual Assignment
+
+Agents or supervisors can assign cases manually through the agent workspace or via the API:
+
+```javascript
+await client.send(new UpdateCaseCommand({
+  DomainId: domainId,
+  CaseId: caseId,
+  Fields: [
+    {
+      Id: "assignee",
+      Value: { UserArn: "arn:aws:connect:us-east-1:123456789012:instance/i-id/agent/a-id" },
+    },
+  ],
+}));
+```
+
+### Re-Assignment
+
+To reassign a case, update the `assignee` field with a new user ARN. The previous assignee is recorded in the audit trail. Re-assignment can also be triggered by case rules or contact flow logic.
+
+## Cases Metrics
+
+Track case handling performance through available metrics:
+
+| Metric | Description |
+|---|---|
+| Cases created | Total cases created in a time period |
+| Cases resolved | Total cases moved to a closed/resolved status |
+| Cases reopened | Cases that were closed and then reopened |
+| Average resolution time | Mean time from case creation to closure |
+| SLA breach rate | Percentage of cases that exceeded SLA targets |
+| Cases by status | Breakdown of cases across Open, In Progress, Pending, Closed |
+| Cases by template | Distribution of cases across different templates |
+
+Cases data exported to the data lake (S3) can be queried via Athena or Redshift Spectrum for custom analytics and dashboarding beyond the built-in metrics.
+
+## Case Event Streams
+
+Cases publishes lifecycle events to Amazon EventBridge for real-time integration with external systems.
+
+### Event Types
+
+| Event Type | Trigger |
+|---|---|
+| `CaseCreated` | A new case is created |
+| `CaseUpdated` | One or more case fields are modified |
+| `CaseStatusChanged` | The status field transitions to a new value |
+| `CaseClosed` | A case is moved to a closed status |
+
+### Event Payload Structure
+
+```json
+{
+  "version": "0",
+  "source": "aws.cases",
+  "detail-type": "Amazon Connect Cases Event",
+  "detail": {
+    "eventType": "CaseStatusChanged",
+    "domainId": "domain-uuid",
+    "caseId": "case-uuid",
+    "fields": {
+      "status": { "oldValue": "Open", "newValue": "Closed" }
+    },
+    "performedBy": {
+      "userArn": "arn:aws:connect:us-east-1:123456789012:instance/i-id/agent/a-id"
+    },
+    "eventTimestamp": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+### Use Cases
+
+- **External system sync** -- push case updates to a CRM or ticketing system
+- **SLA monitoring** -- trigger alerts when cases approach SLA breach thresholds
+- **Notifications** -- send email or SMS notifications on case status changes
+- **Audit logging** -- stream all case events to a centralized log for compliance
+
+## Tag-Based Access Controls on Cases
+
+Use tags to restrict case visibility and actions by team, department, or priority.
+
+### Tagging Cases
+
+Apply tags when creating or updating cases to classify them by organizational attributes:
+
+- `team:billing` -- cases owned by the billing team
+- `department:engineering` -- cases escalated to engineering
+- `priority:critical` -- high-priority cases requiring immediate attention
+
+### IAM and Security Profile Conditions
+
+Restrict agent access to cases based on tags using IAM policy conditions or Connect security profiles:
+
+- Agents only see cases tagged with their team
+- Supervisors can view cases across multiple teams
+- Sensitive cases (e.g., `priority:critical`) can be restricted to senior agents
+
+### Example Use Case
+
+A contact center with separate billing and technical support teams can tag cases accordingly. Billing agents only see cases tagged `team:billing`, while technical agents only see `team:technical`. Supervisors see all cases regardless of tag.
+
+## IAM Permissions for Cases
+
+When building custom IAM policies for Cases access, use the following actions:
+
+| Action | Description |
+|---|---|
+| `cases:CreateCase` | Create a new case |
+| `cases:GetCase` | Retrieve a case by ID |
+| `cases:UpdateCase` | Update case fields |
+| `cases:SearchCases` | Search cases by field values |
+| `cases:CreateTemplate` | Create a case template |
+| `cases:CreateLayout` | Create a field layout |
+| `cases:CreateField` | Create a custom field |
+| `cases:CreateRelatedItem` | Add contacts, comments, or files to a case |
+| `cases:GetCaseAuditEvents` | Retrieve case change history |
+| `cases:CreateDomain` | Create a Cases domain |
+| `cases:DeleteDomain` | Delete a Cases domain |
+| `cases:BatchGetField` | Retrieve multiple field definitions |
+| `cases:BatchPutFieldOptions` | Set field dropdown options |
+| `cases:ListTemplates` | List all templates in a domain |
+| `cases:UpdateTemplate` | Modify an existing template |
+
+Resource ARN format: `arn:aws:cases:<region>:<account-id>:domain/<domain-id>`
+
 ## Key Considerations
 
 - **One domain per instance** -- a Connect instance can only have one Cases domain

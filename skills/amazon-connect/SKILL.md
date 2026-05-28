@@ -40,9 +40,12 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 ### Core Infrastructure
 - [core/instances.md](core/instances.md) — Instance management, attributes, storage configs
 - [core/telephony.md](core/telephony.md) — Phone numbers (DID/toll-free, 110+ countries)
-- [core/security.md](core/security.md) — IAM, encryption, compliance, auth profiles
+- [core/security.md](core/security.md) — IAM policies, encryption, TBAC, security profiles, compliance, best practices
 - [core/global-resiliency.md](core/global-resiliency.md) — Multi-region, traffic distribution
-- [core/network-requirements.md](core/network-requirements.md) — CCP network setup, firewall, ports
+- [core/network-requirements.md](core/network-requirements.md) — CCP network setup, firewall, ports, VDI, Direct Connect
+- [core/routing-and-queues.md](core/routing-and-queues.md) — Queue types, routing profiles, priority/delay, quick connects, transfers
+- [core/user-management.md](core/user-management.md) — Security profiles, hierarchy groups, bulk ops, agent status
+- [core/identity-management.md](core/identity-management.md) — SAML 2.0, AD, Connect-managed, approved origins/CORS
 
 ### Contact Flows
 - [flows/overview.md](flows/overview.md) — Flow designer, types, modules, prompts
@@ -53,6 +56,8 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [flows/media-streaming.md](flows/media-streaming.md) — Kinesis Video Streams
 - [flows/nova-sonic.md](flows/nova-sonic.md) — Nova Sonic Speech-to-Speech
 - [flows/proficiency-routing.md](flows/proficiency-routing.md) — Proficiency-based routing, step waterfall, preferred agent, Lambda JSON
+- [flows/flow-logging.md](flows/flow-logging.md) — CloudWatch Logs setup, log format, troubleshooting
+- [flows/encryption.md](flows/encryption.md) — Sensitive input encryption, key management, PCI compliance
 
 ### Channels
 - [channels/voice.md](channels/voice.md) — Softphone, recording, audio enhancement
@@ -67,6 +72,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [ai/lex-bots.md](ai/lex-bots.md) — Lex integration, conversational IVR
 - [ai/outbound-campaigns.md](ai/outbound-campaigns.md) — Predictive dialer, campaigns v1+v2
 - [ai/generative-ai.md](ai/generative-ai.md) — Post-contact summaries, gen-AI evaluations
+- [ai/prompt-engineering.md](ai/prompt-engineering.md) — AI agent prompt best practices, troubleshooting, monitoring
 
 ### Analytics & Metrics
 - [analytics/contact-lens.md](analytics/contact-lens.md) — Sentiment, transcription, categories
@@ -98,6 +104,9 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [data/cases.md](data/cases.md) — Domains, templates, layouts, rules
 - [data/data-tables.md](data/data-tables.md) — Data tables in flows
 
+### Admin
+- [admin/workspace-admin.md](admin/workspace-admin.md) — Admin workspace themes, home dashboard, notifications
+
 ### Testing
 - [testing/simulation.md](testing/simulation.md) — Visual test designer, flow simulation
 
@@ -127,6 +136,9 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - "What EventBridge events does Connect emit?" → Read `streaming/eventbridge-events.md`
 - "How do I build a 3P app for the agent workspace?" → Read `agent-experience/developer-guide.md`
 - "How do I route contacts based on agent skills/language?" → Read `flows/proficiency-routing.md`
+- "How do I set up SAML SSO for Connect?" → Read `core/identity-management.md`
+- "What are the best practices for AI agent prompts?" → Read `ai/prompt-engineering.md`
+- "How do I encrypt credit card input in a flow?" → Read `flows/encryption.md`
 
 ## Guidelines
 

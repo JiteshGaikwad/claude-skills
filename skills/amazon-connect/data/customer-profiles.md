@@ -250,6 +250,113 @@ Customer Profiles supports GDPR requirements:
 
 All APIs are available via `@aws-sdk/client-customer-profiles`.
 
+## AWS Entity Resolution Integration
+
+Customer Profiles integrates with **AWS Entity Resolution** for advanced cross-source matching beyond the built-in identity resolution.
+
+### Configuration
+
+- Create a matching workflow in AWS Entity Resolution that references your Customer Profiles domain
+- Define matching rules using ML-based or rule-based techniques across multiple data sources
+- Results feed back into Customer Profiles identity resolution, enriching merge decisions
+
+### Use Cases
+
+- Match customer records across disparate systems (CRM, ERP, marketing) with higher accuracy than field-level matching alone
+- Resolve identity across channels where customers use different identifiers (phone vs. email vs. account number)
+- Combine Entity Resolution's schema mapping with Customer Profiles' unified profile storage
+
+## Profile Explorer
+
+Profile Explorer provides a visual interface for browsing and searching customer profiles within the Connect admin console.
+
+- **Search** across all profile attributes (name, phone, email, account number, custom attributes)
+- **Filter** profiles by object type, creation date, or calculated attribute values
+- **View linked profiles** to see relationships established through identity resolution
+- **Inspect profile objects** to see raw data from each integrated source
+- **Navigate** from a profile directly to associated cases, contacts, and segments
+
+## Predictive Insights (Preview)
+
+> **Preview feature** -- functionality and availability are subject to change.
+
+Customer Profiles can generate ML-powered predictions on customer behavior:
+
+| Prediction | Description |
+|---|---|
+| Churn risk | Likelihood that a customer will stop engaging |
+| Lifetime value | Predicted total revenue from a customer over time |
+
+Predictive insights are computed from profile data, contact history, and calculated attributes. Results are surfaced as profile attributes that can be used in:
+
+- Contact flow routing decisions (prioritize high-value customers)
+- Segment definitions (create a segment of high-churn-risk customers)
+- Agent workspace display (show risk indicators to agents)
+
+## Kinesis Integration
+
+Stream profile change events to Amazon Kinesis for real-time downstream processing.
+
+```javascript
+await client.send(new CreateEventStreamCommand({
+  DomainName: "my-domain",
+  EventStreamName: "profile-changes",
+  Uri: "arn:aws:kinesis:us-east-1:123456789012:stream/profile-events",
+}));
+```
+
+### Use Cases
+
+- **External CRM sync** -- push profile updates to Salesforce, Zendesk, or other systems in real-time
+- **Analytics pipelines** -- stream profile changes to a data lake or warehouse for reporting
+- **Event-driven automation** -- trigger Lambda functions on profile creation or update events
+
+## Bulk Export
+
+Export all unified profile data from a domain for offline analysis or migration.
+
+```javascript
+await client.send(new CreateBatchExportJobCommand({
+  DomainName: "my-domain",
+  S3Url: "s3://my-bucket/exports/profiles/",
+  DataFormat: "PARQUET",
+}));
+```
+
+- Exports the full domain dataset to S3 in **Parquet format**
+- Suitable for loading into Athena, Redshift, or other analytics engines
+- Use for periodic snapshots, compliance audits, or data migration between domains
+
+## Default Calculated Attributes
+
+Customer Profiles provides built-in calculated attributes that are automatically maintained for every profile:
+
+| Attribute | Description |
+|---|---|
+| `_last_agent_id` | The last agent who handled a contact for this customer |
+| `_last_contact_id` | The contact ID of the most recent interaction |
+| `_contact_count` | Total number of contacts associated with this customer |
+| `_last_contact_timestamp` | Timestamp of the most recent contact |
+
+### Use in Routing
+
+Default calculated attributes can drive routing decisions in contact flows. For example, use the **Set Routing Criteria** block to route a returning customer to their preferred agent by referencing `_last_agent_id`.
+
+## Security Profile Permissions for Customer Profiles
+
+Control access to Customer Profiles features through Connect security profiles:
+
+| Permission | Description |
+|---|---|
+| View profiles | Agents can view customer profile data in the workspace |
+| Edit profiles | Agents can update profile fields |
+| Create profiles | Agents can create new profiles manually |
+| Delete profiles | Ability to delete profiles and associated data |
+| Domain management | Configure domain settings, encryption, and retention |
+| Integration management | Add, modify, or remove data source integrations |
+
+Assign permissions at the security profile level to control which agents and supervisors can access profile data. Combine with identity resolution permissions to control who can merge or unmerge profiles.
+
 ## Key Considerations
 
 - **Limits:** Default 100M profiles per domain, 1000 object types per domain

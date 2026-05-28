@@ -241,3 +241,22 @@ const response = await client.send(new SendChatIntegrationEventCommand({
 - **Lex integration:** Bots can handle initial interactions before agent handoff
 - **Transfer:** Agents can transfer chats to other agents or queues (warm or cold)
 - **Attachments:** Supported in chat — configurable size limits and file type restrictions
+
+### SMS Number Types
+- **10DLC (10-Digit Long Code)**: Register brand and campaign in Pinpoint. Required for A2P SMS in US. Throughput: up to 100 MPS. Setup: Pinpoint → register brand → register campaign → claim number → associate with Connect flow.
+- **Toll-Free SMS**: Request via Pinpoint. Higher throughput than 10DLC. Requires toll-free verification.
+- **Short Codes**: 5-6 digit numbers. Highest throughput. Longest provisioning (8-12 weeks). Best for high-volume notifications.
+
+### Apple Messages for Business
+- Integrate via Apple Business Register
+- Connect receives messages as chat contacts
+- Requires Apple Business account + Connect chat flow
+- Supports rich messages: list pickers, time pickers, Apple Pay
+- Customer entry points: Maps, Safari, Spotlight search
+
+### WhatsApp Integration
+- Register WhatsApp Business account via Meta Business Manager
+- Configure in Connect admin console
+- Map to inbound chat flow
+- Supports rich messages (images, documents, location)
+- Template messages required for outbound (24-hour session window)

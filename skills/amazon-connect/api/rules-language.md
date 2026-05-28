@@ -370,3 +370,4 @@ Rules can trigger these action types:
 | `GENERATE_EVENT_BRIDGE_EVENT` | Emit an EventBridge event |
 | `END_ASSOCIATED_TASKS` | End tasks associated with the contact |
 | `SUBMIT_AUTO_EVALUATION` | Auto-submit an evaluation form |
+| `ASSIGN_SLA` | Assigns an SLA definition to a case. Parameters: `SlaId`. |

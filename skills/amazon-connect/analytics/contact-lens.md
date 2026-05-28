@@ -211,3 +211,25 @@ There is no real-time vs. post-contact distinction for email since email is an a
 - Real-time and post-contact are priced separately.
 - PII redaction, theme detection, and generative AI features may incur additional charges.
 - Email analytics pricing is per email message analyzed.
+
+### Custom Vocabulary
+- Improve transcription accuracy for domain-specific terms (product names, medical terms, jargon)
+- API: `CreateVocabulary` — provide terms with pronunciation hints and display-as overrides
+- One active vocabulary per language per instance
+- Processing time: up to 2 hours after creation
+- Use case: ensure "Acme Widget Pro" is transcribed correctly instead of "acme widget pro"
+
+### Language Support
+| Mode | Supported Languages |
+|------|-------------------|
+| **Real-time** | English (US/AU/GB), Spanish (US), French (CA), German, Italian, Japanese, Korean, Portuguese (BR), Chinese (Mandarin) |
+| **Post-call** | All real-time languages plus Arabic, Hindi, and additional locales |
+
+Note: Language list expands regularly — check AWS docs for the current list.
+
+### External Voice System Integration
+- Analyze audio from non-Connect voice systems (legacy PBX, third-party CCaaS)
+- Upload audio files to S3 in WAV or MP3 format
+- Use Contact Lens APIs to process uploaded audio
+- Results include: transcription, sentiment, categories, talk time metrics
+- Use case: migrate analytics from legacy systems while maintaining consistent analysis

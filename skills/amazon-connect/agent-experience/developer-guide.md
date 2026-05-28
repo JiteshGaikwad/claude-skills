@@ -4,15 +4,57 @@ This guide covers the three integration approaches for extending the Amazon Conn
 
 ---
 
+## Agent Workspace Overview
+
+The Amazon Connect agent workspace is a browser-based application that provides agents with a unified interface for handling customer interactions. It embeds the Contact Control Panel (CCP), step-by-step guides, Customer Profiles, Cases, and AI-powered agent assist tools into a single workspace shell.
+
+Applications load inside iframes within the workspace shell. The workspace manages authentication, theming, and event routing between all embedded applications.
+
+There are three types of integrations:
+
+- **Third-party applications (3P apps)**: Custom web applications with a visible UI that appear as tabs in the workspace.
+- **Third-party services (headless)**: Background processes with no visible UI that run for the entire agent session.
+- **AWS-managed applications**: Built-in applications managed by AWS (Customer Profiles, Cases, etc.).
+
+Agent workspace URL: `https://{instance-alias}.my.connect.aws/agent-app-v2/`
+
+---
+
+## Best Practices
+
+- **Embedding security**: Use `X-Frame-Options` and CSP headers to ensure your app can only be embedded in the Connect workspace. Restrict `frame-ancestors` to the Connect domain.
+- **Multiple domains**: Register all domains (including staging and localhost for development) as approved origins via the `AssociateApprovedOrigin` API.
+- **Streams initialization**: Initialize the Streams JS library before creating SDK clients. Do not call `initCCP` multiple times — it should be called once on page load.
+- **Accessibility**: Follow WCAG 2.1 AA guidelines. Use semantic HTML elements, ARIA labels, and ensure full keyboard navigation support.
+- **Theming**: Always use `app.getTheme()` to match the workspace theme. Subscribe to `onThemeChanged` for dynamic updates when agents toggle dark mode.
+
+---
+
 ## A. Third-Party Applications (3P Apps)
 
 Third-party applications are custom web applications loaded inside the agent workspace via HTTPS iframes. They appear as tabs and interact with the workspace through the Amazon Connect SDK.
+
+### Prerequisites — IAM Role
+
+An IAM role with the following permissions is required to register and manage third-party applications:
+
+- `app-integrations:CreateApplication`
+- `connect:AssociateApprovedOrigin`
+
+In the AWS console, register your application under the Amazon Connect admin console > "Third-party applications."
 
 ### Prerequisites
 
 - HTTPS-hosted web application (HTTP is rejected by the iframe sandbox).
 - Application registered in the Amazon Connect console under "Third-party applications."
 - `@amazon-connect/sdk` packages installed.
+
+### Create Your Application
+
+1. Go to the Amazon Connect admin console and navigate to "Third-party applications."
+2. Register your app: provide a name, namespace, and origin URL (must be HTTPS).
+3. Configure permissions: select which agent data the app can access (contacts, agent state, etc.).
+4. Associate the app with a security profile to control which agents see it in their workspace.
 
 ### Installation
 
@@ -123,6 +165,84 @@ try {
 }
 ```
 
+### SDK Without Package Manager (Bundling Guide)
+
+When npm is not available (e.g., legacy apps, static sites), you can bundle the SDK packages into a single file:
+
+1. Create a build project:
+   ```bash
+   mkdir connect-sdk-build && cd connect-sdk-build
+   ```
+2. Initialize the project:
+   ```bash
+   npm init -y
+   ```
+3. Install SDK packages:
+   ```bash
+   npm install @amazon-connect/contact @amazon-connect/agent @amazon-connect/core @amazon-connect/app-controller
+   ```
+4. Install a bundler:
+   ```bash
+   npm install --save-dev esbuild
+   ```
+5. Create an entry file (`index.js`):
+   ```javascript
+   export { ContactClient } from "@amazon-connect/contact";
+   export { AgentClient } from "@amazon-connect/agent";
+   export { AmazonConnectApp } from "@amazon-connect/core";
+   export { AppControllerClient } from "@amazon-connect/app-controller";
+   ```
+6. Add a build script to `package.json`:
+   ```json
+   {
+     "scripts": {
+       "build": "esbuild index.js --bundle --outfile=dist/amazon-connect-sdk.js --format=iife --global-name=AmazonConnectSDK"
+     }
+   }
+   ```
+7. Build:
+   ```bash
+   npm run build
+   ```
+8. Copy `dist/amazon-connect-sdk.js` to your project.
+
+Usage in HTML:
+
+```html
+<script src="amazon-connect-sdk.js"></script>
+<script>
+  const { ContactClient, AgentClient } = window.AmazonConnectSDK;
+</script>
+```
+
+StreamsJS integration: Load Streams JS first (`connect-streams.js`), then the SDK bundle. Initialize CCP via `connect.core.initCCP()`, then create SDK clients.
+
+### Agent Data Integration
+
+Use the Agent Client to subscribe to agent state and retrieve role/queue information for your app:
+
+- Subscribe to agent state changes: `agentClient.onStateChanged(callback)`
+- Get agent routing profile: `agentClient.getRoutingProfile()`
+- Get available states: `agentClient.listAvailabilityStates()`
+- Use case: show agent-specific data in your app based on their assigned queues or role.
+
+### Events and Requests Pattern
+
+The SDK uses two communication patterns between the workspace and your app:
+
+- **Events**: workspace-to-app notifications (agent state changed, contact incoming, theme changed). Events use a subscribe/unsubscribe pattern with `on*` / `off*` methods.
+- **Requests**: app-to-workspace actions (set agent state, accept contact, launch another app). Requests use async methods that return promises.
+
+```typescript
+// Event pattern: subscribe to notifications
+contactClient.onIncoming((event) => {
+  console.log("New contact:", event.contactId);
+});
+
+// Request pattern: perform an action
+await contactClient.accept(contactId);
+```
+
 ### Troubleshooting
 
 **Events not received:**
@@ -187,6 +307,56 @@ contactClient.onStartingAcw((event) => {
   });
 });
 ```
+
+### Agent Workspace Startup Process
+
+1. Agent opens the workspace URL.
+2. Workspace loads the CCP, AWS-managed apps, and all registered third-party apps.
+3. Third-party services are initialized in the background (no visible UI).
+4. Services receive lifecycle events and can interact with apps via AppController.
+
+### Example: Contact Event Listener with App Launch
+
+```typescript
+import { AmazonConnectApp } from "@amazon-connect/core";
+import { ContactClient } from "@amazon-connect/contact";
+import { AppControllerClient } from "@amazon-connect/app-controller";
+
+const app = await AmazonConnectApp.init({ instanceUrl });
+const contactClient = new ContactClient(app);
+const appController = new AppControllerClient(app);
+
+contactClient.onIncoming(async (contact) => {
+  const attrs = await contactClient.getAttributes(contact.contactId);
+  if (attrs["customerTier"] === "premium") {
+    await appController.launch({ appId: "premium-support-app" });
+  }
+});
+```
+
+### Example: Authentication Popup Pattern
+
+```typescript
+import { AmazonConnectApp } from "@amazon-connect/core";
+import { AppControllerClient } from "@amazon-connect/app-controller";
+
+const app = await AmazonConnectApp.init({ instanceUrl });
+const appController = new AppControllerClient(app);
+
+// Service that handles OAuth popup for an external CRM
+await appController.launch({
+  appId: "crm-auth-popup",
+  launchMode: "popup",
+  metadata: { returnUrl: window.location.href },
+});
+```
+
+### Service Best Practices
+
+- Create services sparingly — each one adds to workspace startup time.
+- Use services for cross-cutting concerns (authentication, logging, routing logic).
+- Do not duplicate functionality that an app already handles.
+- Services persist for the entire agent session — clean up event listeners on destroy.
 
 ### Differences from 3P Apps
 

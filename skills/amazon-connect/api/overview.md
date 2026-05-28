@@ -71,6 +71,28 @@ All Amazon Connect sub-services share these 14 common error responses:
 | `UnknownOperationException` | 404 | The API action name does not exist |
 | `UnrecognizedClientException` | 403 | AWS access key ID or security token is invalid |
 | `ValidationError` | 400 | One or more request parameters failed validation |
+| `ServiceQuotaExceededException` | 402 | Account has reached a service quota (e.g., max instances, max flows) |
+| `ResourceConflictException` | 409 | Resource state conflicts with the request (e.g., concurrent update) |
+| `IdempotencyException` | 409 | Request with same ClientToken but different parameters was already processed |
+
+## Idempotency (ClientToken)
+
+Some mutating APIs accept a `ClientToken` parameter for idempotency:
+- If you retry a request with the same `ClientToken` and identical parameters, the API returns the original response without creating a duplicate resource
+- If you reuse a `ClientToken` with different parameters, the API returns `IdempotencyException`
+- Token validity: typically 24 hours
+- Used in: `StartOutboundVoiceContact`, `StartChatContact`, `CreateContactFlow`, `PutDialRequestBatch`, and others
+- Best practice: generate a UUID per logical operation, reuse on retries only
+
+## Attachment File Types
+
+Supported file types for attachments (chat, email, cases):
+- Documents: PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, PPT, PPTX
+- Images: JPG, JPEG, PNG, GIF, BMP, HEIC
+- Audio: WAV, MP3, MP4
+- Other: ZIP
+- Max file size: 100 MB (configurable per instance, default varies by feature)
+- Presigned S3 URLs expire after the configured timeout — do not cache or share
 
 ## Best Practices
 

@@ -311,3 +311,22 @@ Contacts are presented based on:
 1. Priority setting (configurable in contact flows).
 2. Age in queue (longest-waiting first within the same priority).
 3. Channel routing order (configurable in routing profile).
+
+### Launch and Login
+- **CCP URL**: `https://{instance-alias}.my.connect.aws/ccp-v2/`
+- **Login options**: Connect-managed credentials, SAML SSO redirect, AD credentials
+- **First-time setup**: Allow microphone access, allow popups, enable third-party cookies
+- **Cookie requirements**: Third-party cookies must be enabled for CCP to function
+
+### Forward Calls to Mobile
+- Set agent phone type to "Desk phone"
+- Enter mobile number in E.164 format (e.g., +14155551234)
+- Incoming calls ring the mobile device
+- **Limitations**: No softphone UI features (hold/mute buttons); use DTMF or physical phone
+- **Use case**: Remote agents without reliable internet for softphone
+
+### View Agent Schedule
+- Schedule tab in agent workspace (requires WFM enabled)
+- Shows today's timeline: shifts, breaks, training, time off
+- Submit time-off requests directly from schedule view
+- Weekly view for upcoming schedule

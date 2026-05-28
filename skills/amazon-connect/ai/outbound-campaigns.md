@@ -339,3 +339,304 @@ schedule: {
 | `DeleteCampaign` | Delete a campaign |
 | `GetCampaignState` | Check campaign status |
 | `ListCampaigns` | List campaigns with filtering |
+
+---
+
+## Prerequisites
+
+Before creating outbound campaigns, ensure the following are in place:
+
+1. **KMS Key** -- create a symmetric KMS key for campaign data encryption. The key policy must grant `connect-campaigns.amazonaws.com` access to `kms:Encrypt`, `kms:Decrypt`, and `kms:GenerateDataKey`.
+
+2. **Outbound Calling Enabled** -- in the Amazon Connect console, enable outbound calling on the instance under Telephony options.
+
+3. **Customer Profiles Domain** -- a Customer Profiles domain must be configured and linked to the Connect instance. Campaign contact lists are sourced from Customer Profiles segments.
+
+4. **Phone Number with Outbound Capability** -- claim or port a phone number with outbound calling capability. The number must be associated with the Connect instance and will serve as the caller ID.
+
+5. **Service-Linked Role** -- the `AWSServiceRoleForConnectCampaignsV2` service-linked role is created automatically when you first use the service. Ensure your IAM policies do not block its creation.
+
+---
+
+## Multi-Step Journeys
+
+A journey is a sequence of campaign steps that orchestrate outreach across multiple channels and time intervals.
+
+### Journey Flow Blocks
+
+| Block | Description |
+|-------|-------------|
+| **Wait** | Pause for a specified duration before the next step |
+| **Branch** | Conditional logic based on previous step outcome (e.g., answered vs. not answered) |
+| **Send** | Execute an outreach action on a specific channel (voice, SMS, email) |
+| **End** | Terminate the journey for this contact |
+
+### How It Works
+
+- Each step in the journey can use a different channel and timing
+- Branch blocks evaluate the result of the previous step to decide the next path
+- Wait blocks introduce delays between steps (hours or days)
+- Contacts exit the journey when they reach an End block or when communication limits are hit
+
+### Example: Multi-Day Outreach Sequence
+
+```
+Day 1: Send email (payment reminder)
+  └─ Wait 2 days
+Day 3: Branch -- did customer open email?
+  ├─ Yes → End (no further action)
+  └─ No → Send SMS (brief reminder with link)
+       └─ Wait 4 days
+Day 7: Branch -- did customer respond to SMS?
+  ├─ Yes → End
+  └─ No → Send voice call (agent-assisted follow-up)
+       └─ End
+```
+
+This approach increases contact rates while respecting customer preferences and avoiding over-contact.
+
+---
+
+## Event Triggers
+
+Campaigns can be triggered automatically by EventBridge events rather than running on a fixed schedule.
+
+### Event Sources
+
+- **Customer Profiles segment membership changes** -- when a customer enters or exits a segment (e.g., account becomes past due)
+- **External events** -- custom events published to EventBridge from your applications
+
+### Configuration
+
+```javascript
+const { ConnectCampaignsV2Client, CreateCampaignCommand } = require("@aws-sdk/client-connectcampaignsv2");
+
+const client = new ConnectCampaignsV2Client({ region: "us-east-1" });
+
+await client.send(new CreateCampaignCommand({
+  name: "SegmentTriggeredCampaign",
+  connectInstanceId: "instance-id",
+  channelSubtypeConfig: {
+    telephony: {
+      capacity: 1.0,
+      outboundMode: { progressive: {} },
+      defaultOutboundConfig: {
+        connectContactFlowId: "flow-arn",
+        connectSourcePhoneNumber: "+15551234567"
+      }
+    }
+  },
+  connectCampaignFlowArn: "campaign-flow-arn",
+  source: {
+    eventTrigger: {
+      customerProfilesDomainArn: "domain-arn"
+    }
+  }
+}));
+```
+
+### Use Cases
+
+- Trigger a welcome call when a new customer profile is created
+- Send a retention offer when a customer enters an at-risk segment
+- Initiate a survey after a service interaction is completed
+
+---
+
+## Campaign Metrics
+
+### Key Performance Indicators
+
+| Metric | Description |
+|--------|-------------|
+| **Dial rate** | Number of dial attempts per unit time |
+| **Completion rate** | Percentage of contacts in the list that were attempted |
+| **Connect rate** | Percentage of dial attempts that resulted in a connection (human or machine) |
+| **Right party contact rate** | Percentage of calls where the intended person was reached |
+| **Abandon rate** | Percentage of connected calls where no agent was available (predictive mode) |
+
+### AMD Results Aggregation
+
+Track answering machine detection outcomes to measure campaign quality:
+
+- `HUMAN_ANSWERED` rate indicates live contact effectiveness
+- High `VOICEMAIL_BEEP` + `VOICEMAIL_NO_BEEP` rates suggest poor timing or stale numbers
+- `SIT_TONE_*` rates indicate number quality issues in the contact list
+- `AMD_UNRESOLVED` spikes may indicate audio quality or network issues
+
+### Where Metrics Are Available
+
+- **Contact records** -- each dial attempt produces a contact record with AMD status and disposition
+- **Amazon Connect data lake** -- aggregated campaign metrics available for historical analysis and dashboards
+- **Real-time metrics** -- agent occupancy and availability during active campaigns
+
+---
+
+## Security Profile Permissions
+
+### Outbound Campaigns Permissions
+
+Assign these permissions in the Connect security profile to control user access:
+
+| Permission | Description |
+|------------|-------------|
+| **Outbound campaigns - Create** | Create new campaigns |
+| **Outbound campaigns - Edit** | Modify campaign configuration, schedule, and limits |
+| **Outbound campaigns - Delete** | Delete campaigns |
+| **Outbound campaigns - Enable/Disable** | Start, pause, and stop campaigns |
+
+### Communication Limits Permissions
+
+| Permission | Description |
+|------------|-------------|
+| **Communication limits - View** | View instance-wide communication limit defaults |
+| **Communication limits - Edit** | Modify instance-wide communication limit defaults |
+
+### Required IAM Actions
+
+For programmatic access, the IAM policy must include:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "connect-campaigns:CreateCampaign",
+        "connect-campaigns:DeleteCampaign",
+        "connect-campaigns:GetCampaign*",
+        "connect-campaigns:ListCampaigns",
+        "connect-campaigns:PauseCampaign",
+        "connect-campaigns:PutOutboundRequestBatch",
+        "connect-campaigns:ResumeCampaign",
+        "connect-campaigns:StartCampaign",
+        "connect-campaigns:StopCampaign",
+        "connect-campaigns:UpdateCampaign*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+---
+
+## Best Practices
+
+### Dialing Configuration
+
+- **Ring duration**: set to 15-25 seconds. Shorter durations miss slow-to-answer contacts; longer durations waste agent time.
+- **Caller ID**: use local area code numbers when possible -- local numbers have measurably higher answer rates than toll-free or out-of-area numbers.
+
+### PutDialRequestBatch / PutOutboundRequestBatch
+
+- **Batch size**: maximum 25 requests per batch call
+- **Throttling**: implement exponential backoff with jitter when receiving `ThrottlingException`
+- **Idempotency**: use unique `clientToken` values to prevent duplicate dial attempts on retries
+- **Expiration**: set reasonable `expirationTime` values to avoid stale contacts being dialed
+
+### Dialer Mode Selection
+
+| Mode | Best For | Key Consideration |
+|------|----------|-------------------|
+| **Predictive** | High-volume campaigns where throughput matters most | ML optimizes dial rate but may produce some abandoned calls; monitor abandon rate |
+| **Progressive** | High-value or compliance-sensitive calls | 1:1 agent-to-call ratio eliminates abandoned calls; lower throughput |
+| **Agentless** | Notifications, appointment confirmations, surveys | No agent needed; use with IVR flows for self-service interactions |
+
+### Compliance
+
+- **Time-of-day restrictions**: configure `communicationTimeConfig` to respect local calling hour laws (e.g., TCPA restricts calls before 8 AM and after 9 PM local time)
+- **Do-Not-Call (DNC) lists**: filter contacts against DNC registries before adding to campaign segments
+- **Consent management**: track and enforce opt-in/opt-out status in Customer Profiles attributes
+- **Communication limits**: set daily and weekly caps per recipient to avoid over-contact
+
+### Predictive Dialer Tuning
+
+- Start with conservative settings and let the ML model learn agent handling patterns
+- The model automatically adjusts dial-ahead rate based on observed agent availability and call duration
+- Allow 1-2 hours of runtime for the model to stabilize before evaluating abandon rates
+- Monitor the abandon rate target -- the system optimizes toward the configured threshold
+
+---
+
+## Lambda Integration in Campaigns
+
+Lambda functions can be invoked at key points during the campaign dial lifecycle to add custom logic.
+
+### Invocation Points
+
+- **Pre-dial**: execute logic before each dial attempt
+- **Post-dial**: execute logic after each dial attempt completes
+
+### Common Use Cases
+
+**Dynamic Caller ID Selection**
+
+Select the caller ID number based on the contact's location or account attributes:
+
+```javascript
+exports.handler = async (event) => {
+  const { contact } = event;
+  const state = contact.attributes?.state;
+
+  // Use a local number matching the contact's state
+  const callerIdMap = {
+    CA: "+14155550100",
+    NY: "+12125550100",
+    TX: "+12145550100"
+  };
+
+  return {
+    connectSourcePhoneNumber: callerIdMap[state] || "+18005550100"
+  };
+};
+```
+
+**Contact Enrichment**
+
+Look up additional data before the call connects to an agent:
+
+```javascript
+exports.handler = async (event) => {
+  const { contactId, attributes } = event;
+  const accountNumber = attributes?.accountNumber;
+
+  // Fetch latest account status from your system
+  const accountData = await fetchAccountDetails({ accountNumber });
+
+  return {
+    attributes: {
+      ...attributes,
+      currentBalance: accountData.balance,
+      lastPaymentDate: accountData.lastPayment,
+      preferredLanguage: accountData.language
+    }
+  };
+};
+```
+
+**Custom Routing Logic**
+
+Route the call to a specific queue or flow based on pre-dial evaluation:
+
+```javascript
+exports.handler = async (event) => {
+  const { attributes } = event;
+  const accountValue = parseFloat(attributes?.accountValue || "0");
+
+  // High-value accounts get routed to senior agents
+  if (accountValue > 50000) {
+    return {
+      connectContactFlowId: "high-value-flow-arn",
+      connectQueueId: "senior-agents-queue-arn"
+    };
+  }
+
+  return {};  // Use campaign defaults
+};
+```
+
+### Configuration
+
+Lambda functions are associated with the campaign's contact flow. Use the `InvokeLambdaFunction` block in the campaign flow to call your function at the appropriate point in the contact flow.

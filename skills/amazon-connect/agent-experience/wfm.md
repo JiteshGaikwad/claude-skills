@@ -246,3 +246,28 @@ Agents see their WFM schedule directly in the agent workspace:
 - **Time-off requests** -- submit and track requests from the workspace.
 
 The schedule view is read-only for agents. Only schedulers and administrators can modify schedules.
+
+### Time Off Management
+- **Allowances**: Set annual/monthly allowances per agent or group
+- **Accrual**: Hours accrued per pay period, configurable rules
+- **Carryover**: Max carryover hours, expiration dates
+- **Request/Approval**: Agent submits → manager reviews → auto-updates schedule
+- **CSV Upload**: Bulk import time-off balances
+
+### Overtime Management
+- **Rules**: Max hours per day/week, approval required
+- **Voluntary vs Mandatory**: Agents can opt-in or be assigned
+- **Scheduling**: System suggests agents based on availability and skills
+- **Cost Tracking**: Overtime hours tracked in reports
+
+### Surge Management
+- Detect surges via real-time metrics (queue size, wait time spikes)
+- Dynamic staffing: extend shifts, cancel breaks, activate on-call agents
+- Voluntary overtime offers to available agents
+- Queue overflow to backup queues
+
+### Multi-Skill Scheduling
+- Agents scheduled across multiple queues/skills
+- Skill priority weighting in schedule optimization
+- Migration from single-skill: gradual rollout recommended
+- Impact on forecast accuracy during transition period

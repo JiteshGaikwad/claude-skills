@@ -185,9 +185,9 @@ Actions that interact with participants (customer, agent, bot).
 | `ConnectParticipantWithLexBot` | Connects the customer to an Amazon Lex bot. |
 | `DisconnectParticipant` | Disconnects the participant (hangs up). |
 | `GetParticipantInput` | Collects DTMF or Lex input from the participant. |
-| `MessageParticipant` | Plays a prompt or sends a message to the participant. |
-| `MessageParticipantIteratively` | Plays prompts in a loop (queue flow). |
-| `ShowView` | Displays a UI view to the agent in the workspace. |
+| `MessageParticipant` | Sends a message (text, SSML, or audio) to a participant. Parameters: `MediaType` (Audio/SSML/Text), `Text`, `SSML`, `SourceAttribute`. Used by: Play prompt block. |
+| `MessageParticipantIteratively` | Sends a repeating/looping message. Parameters: same as MessageParticipant plus `LoopCount`. Used by: Loop prompts block. |
+| `ShowView` | Displays a UI view (step-by-step guide) to the agent. Parameters: `ViewResource` (ARN), `ViewData` (JSON). Used by: Show view block. |
 
 ## Example Flow
 

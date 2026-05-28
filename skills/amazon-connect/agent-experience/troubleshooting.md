@@ -407,3 +407,35 @@ Agent Browser
 ```
 
 The key principle: **media traffic (UDP) should bypass the proxy**. Signaling traffic (HTTPS/WSS) can go through the proxy if it supports WebSocket and does not break TLS.
+
+### Endpoint Test Utility
+- Available from Connect admin console under "Troubleshooting"
+- Tests: network connectivity, WebSocket, media path, browser compatibility
+- Results: pass/fail for each endpoint category
+- Run before deployment to validate agent workstations
+- Checks TURN server reachability, DNS resolution, and WebRTC capability
+
+### QualityMetrics in Contact Records
+- Contact record field: `QualityMetrics`
+- Contains: MOS (Mean Opinion Score 1-5), jitter (ms), packet loss (%), round-trip time (ms)
+- Access via `GetContactAttributes` API or contact record export
+- Use for: diagnosing audio quality issues after the fact, trending quality over time
+
+### Outbound Call Issues
+- **Agent can't make outbound calls**: Check routing profile has outbound queue assigned, verify security profile has "Make outbound calls" permission, confirm phone number has outbound capability
+- **Caller ID not showing**: Check queue outbound caller ID config, verify claimed number supports outbound
+
+### Mobile/Tablet Support
+- CCP and agent workspace do NOT support mobile phones (iPhone/Android) or iPads
+- Desktop browser required for full functionality
+- Desk phone mode works from any phone but the UI must remain on a desktop browser
+
+### Screen Recording Issues
+- **Not starting**: Check Set Recording block in flow, verify screen recording enabled on instance
+- **Quality issues**: Depends on agent screen resolution and network bandwidth
+- **Storage**: Recordings stored in S3; check bucket permissions and encryption config
+
+### Audio Humming/Buzzing
+- **Cause**: Sample rate mismatch between headset and browser audio context
+- **Fix**: Ensure headset sample rate matches browser (typically 48kHz)
+- **USB headsets preferred** over Bluetooth (lower latency, fewer codec issues)
