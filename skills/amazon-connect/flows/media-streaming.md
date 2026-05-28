@@ -4,7 +4,11 @@
 
 Live media streaming enables real-time streaming of customer audio from Amazon Connect to Amazon Kinesis Video Streams (KVS). This allows external applications to process audio in real time for use cases such as transcription, sentiment analysis, compliance monitoring, and custom AI/ML processing.
 
-Media streaming captures the customer's audio track and sends it as fragments to a Kinesis Video Stream. Your application consumes these fragments in real time.
+Media streaming captures audio and sends it as fragments to a Kinesis Video Stream. Your application consumes these fragments in real time. Depending on configuration, audio can be captured for the entire interaction or only in one direction:
+- **From the customer**: What the customer says, including when they are on hold.
+- **To the customer**: What the customer hears, including agent speech and system prompts.
+
+Customer audio streams also include interactions with an Amazon Lex bot if one is used in the flow.
 
 ## Use Cases
 
@@ -21,20 +25,23 @@ Media streaming captures the customer's audio track and sends it as fragments to
 
 Located in the **Media and Streaming** category in the flow designer.
 
-**What it does**: Begins streaming the customer's audio to a Kinesis Video Stream. A new KVS stream is created (or reused) for each contact.
+**What it does**: Begins streaming audio to a Kinesis Video Stream. A new KVS stream is created (or reused) for each contact.
 
 **Configuration**:
-- **Media stream type**: Customer audio (currently the only option).
-- **Participants to stream**: Customer only. Agent audio is not available via media streaming (agent audio is available via recording or Contact Lens).
+- **Media stream type**: Customer audio.
+- **Participants to stream**: Choose what to stream:
+  - **From the customer**: Customer's spoken audio (what they say).
+  - **To the customer**: Audio the customer hears (agent speech, system prompts).
+  - Both options can be selected simultaneously.
 
 **Branches**:
 - **Success**: Streaming started successfully. The KVS stream ARN is now available in contact attributes.
 - **Error**: Failed to start streaming (e.g., KVS configuration issue, permissions).
 
 **After this block executes**, the following contact attributes are populated:
-- `$.MediaStreams.Customer.Audio.StreamARN` — The ARN of the Kinesis Video Stream.
-- `$.MediaStreams.Customer.Audio.StartTimestamp` — Epoch timestamp (milliseconds) when streaming began.
-- `$.MediaStreams.Customer.Audio.StartFragmentNumber` — The fragment number to start consuming from.
+- `$.MediaStreams.Customer.Audio.StreamARN` -- The ARN of the Kinesis Video Stream.
+- `$.MediaStreams.Customer.Audio.StartTimestamp` -- Epoch timestamp (milliseconds) when streaming began.
+- `$.MediaStreams.Customer.Audio.StartFragmentNumber` -- The fragment number to start consuming from.
 
 ### Stop Media Streaming
 
@@ -45,11 +52,19 @@ Located in the **Media and Streaming** category in the flow designer.
 - Before transferring to a queue if you do not need streaming during the queue wait.
 - To free up KVS resources.
 
+**Configuration**:
+- Same participant options as Start: From the customer, To the customer.
+
 **Branches**:
 - **Success**: Streaming stopped.
 - **Error**: Failed to stop streaming.
 
 If you do not explicitly stop streaming, it continues until the contact ends. Streaming automatically stops when the contact disconnects.
+
+**After stop**, the following attribute is populated:
+- `$.MediaStreams.Customer.Audio.StopTimestamp` -- When the stream stopped.
+
+Customer audio is captured until a Stop media streaming block is invoked, even if the contact is passed to another flow.
 
 ## Architecture
 
@@ -76,7 +91,7 @@ Downstream Processing
 - **Codec**: PCM (Linear16)
 - **Sample rate**: 8 kHz
 - **Bit depth**: 16-bit
-- **Channels**: Mono (single channel, customer audio only)
+- **Channels**: Mono (single channel)
 - **Container**: MKV (Matroska) fragments in KVS
 
 ## Configuration
@@ -89,15 +104,22 @@ Before using the flow blocks, enable media streaming at the instance level:
 2. Under **Live media streaming**, choose Edit.
 3. Enable live media streaming.
 4. Configure:
-   - **Data retention period**: How long KVS retains the stream data (0 hours to 87600 hours / 10 years). Set to 0 for no retention (consume in real-time only).
-   - **Prefix for the Kinesis Video Stream**: A prefix for the KVS stream names (e.g., `connect-media-`). Connect appends the contact ID.
+   - **Prefix for the Kinesis Video Stream**: A prefix for the KVS stream names (e.g., `connect-media-`). Connect appends the contact ID. This prefix makes it easier to identify streams with the data.
+   - **Data retention period**: How long KVS retains the stream data. Options:
+     - **No data retention**: Data is not retained and is available for consumption for only 5 minutes (Kinesis default minimum).
+     - Custom period: Up to 87,600 hours (10 years).
+     - Kinesis Video Streams quotas apply.
+5. Choose Save under Live media streaming, then Save at the bottom of the page.
 
 ### Encryption
 
 - KVS streams are encrypted at rest using AWS KMS.
-- By default, Connect uses the AWS managed key for Kinesis Video Streams.
+- Data is encrypted before it's written to the KVS stream storage layer and decrypted after retrieval. Data is always encrypted at rest within KVS.
+- By default, Connect uses the AWS managed key for Kinesis Video Streams (`aws/kinesisvideo`).
 - You can specify a customer-managed KMS key for additional control.
-- The KMS key must grant `kms:GenerateDataKey` to the Connect service role.
+- The KMS key must be in the **same Region** as the instance.
+- The KMS key should be either a customer managed key OR the AWS managed key for KVS (`aws/kinesisvideo`). It should NOT be AWS managed keys for other services (e.g., `aws/connect`, `aws/lambda`, `aws/kinesis`).
+- The grant provisioned for the key by Connect should not be revoked. The `GranteePrincipal` format is: `arn:aws:iam::{account-id}:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_{hash}`.
 
 ### IAM Permissions
 
@@ -110,11 +132,22 @@ The Connect service-linked role needs permissions to:
 
 These are automatically granted when you enable media streaming through the console. If configuring via API/CloudFormation, ensure the service role has these permissions.
 
+## Contact Attributes for Media Streaming
+
+Use these in your flow so the contact record includes the streaming data. You can also pass them to Lambda functions.
+
+| Attribute | JSONPath | Description |
+|-----------|----------|-------------|
+| Customer Audio Stream ARN | `$.MediaStreams.Customer.Audio.StreamARN` | ARN of the KVS stream for customer audio. |
+| Customer Audio Start Timestamp | `$.MediaStreams.Customer.Audio.StartTimestamp` | When customer audio stream started. |
+| Customer Audio Stop Timestamp | `$.MediaStreams.Customer.Audio.StopTimestamp` | When customer audio stream stopped. |
+| Customer Audio Start Fragment Number | `$.MediaStreams.Customer.Audio.StartFragmentNumber` | Fragment number where streaming began. |
+
 ## Consuming the Stream
 
 ### From Lambda
 
-A common pattern is to use a Lambda function triggered by an event (e.g., contact flow sets attributes and invokes a Lambda that starts consuming):
+A common pattern is to use a Lambda function triggered by the flow that starts consuming:
 
 ```javascript
 const {
@@ -209,6 +242,21 @@ Start flow
   -> (ECS task continues processing until disconnect)
 ```
 
+### Pattern 4: Stream Both Directions
+
+```
+Start flow
+  -> Start media streaming (From the customer AND To the customer)
+  -> [rest of flow]
+  -> (captures both sides of the conversation)
+```
+
+### Block Placement
+
+- Place `Start media streaming` **early** in the flow, before any queue or transfer, to ensure audio is captured from the beginning.
+- Customer audio is captured continuously after Start, even across flow transfers, until Stop is invoked or the contact disconnects.
+- Place `Stop media streaming` when you no longer need audio (e.g., after authentication) to free KVS resources.
+
 ## Limits
 
 | Limit | Value |
@@ -216,17 +264,21 @@ Start flow
 | Streams per contact | 1 (customer audio) |
 | Audio format | PCM 8 kHz 16-bit mono |
 | Maximum retention | 87,600 hours (10 years) |
-| Minimum retention | 0 hours (no retention, real-time only) |
+| Minimum retention | 0 hours (no retention; data available for 5 minutes only) |
 | KVS streams per AWS account | Default 5,000 (soft limit) |
 | KVS PutMedia connections per stream | 1 |
 | KVS GetMedia connections per stream | 3 |
+
+Kinesis Video Streams quotas apply: see [KVS quotas](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/limits.html).
 
 ## Troubleshooting
 
 | Issue | Cause | Solution |
 |-------|-------|---------|
-| Stream ARN is empty | Media streaming not enabled on instance | Enable in Connect console > Data storage |
-| Error branch taken on Start | KMS key permissions | Ensure service role has `kms:GenerateDataKey` on the KMS key |
+| Stream ARN is empty | Media streaming not enabled on instance | Enable in Connect console > Data storage > Live media streaming |
+| Error branch taken on Start | KMS key permissions | Ensure service role has `kms:GenerateDataKey` on the KMS key. Verify KMS key is in the same Region. Verify the key is customer-managed or `aws/kinesisvideo`, not an AWS managed key for another service. |
 | No audio data in stream | Block placed after disconnect | Place `Start media streaming` early in the flow, before any queue/transfer |
 | Consumer falls behind | Slow processing | Scale consumer (more ECS tasks, faster processing), or use Kinesis Data Streams as intermediary |
 | Audio is garbled | Wrong parser or sample rate | Ensure you are parsing MKV correctly and using 8 kHz 16-bit PCM |
+| KMS grant revoked | Service role grant was revoked | Re-enable media streaming in the console to re-provision the KMS grant |
+| No data after 5 minutes | Retention set to 0 (no retention) | Increase retention period or ensure consumer processes data within 5 minutes |

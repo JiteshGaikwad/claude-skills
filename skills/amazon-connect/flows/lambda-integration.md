@@ -8,9 +8,16 @@ Amazon Connect flows can invoke AWS Lambda functions to perform data lookups, bu
 
 Before using Lambda in a flow, you must register the Lambda function with your Connect instance:
 
-1. Go to Amazon Connect console > Your instance > AWS Lambda
-2. Add the Lambda function ARN
-3. This grants Connect permission to invoke the function (adds a resource-based policy)
+1. Go to Amazon Connect console > Your instance > Flows (under AWS Lambda section).
+2. Use the **Function** dropdown to select the Lambda function to add.
+3. Choose **Add Lambda Function**. Confirm the ARN is added under Lambda Functions.
+
+The dropdown only lists functions in the same Region as your instance. To use a Lambda in a different Region or account:
+- In the `Invoke AWS Lambda function` block, under **Select a function**, enter the Lambda ARN directly.
+- Set up a resource-based policy on the Lambda:
+  - Principal: `connect.amazonaws.com`
+  - Source account: the account your instance is in
+  - Source ARN: the ARN of your instance
 
 Alternatively, use the `AssociateLambdaFunction` API.
 
@@ -18,9 +25,13 @@ Alternatively, use the `AssociateLambdaFunction` API.
 
 ### Configuration
 
-- **Function ARN**: Select from the list of registered Lambda functions.
-- **Timeout**: Maximum 8 seconds. If the Lambda does not respond within the timeout, the Error branch is taken.
-- **Function input parameters**: Key-value pairs sent as additional parameters alongside the standard event payload.
+- **Function ARN**: Select from registered functions, or enter an ARN manually (for cross-region/cross-account).
+- **Timeout**: Maximum **8 seconds**. If the Lambda does not respond within the timeout, the Error branch is taken.
+- **Response validation**: Choose **STRING_MAP** or **JSON** format for the response.
+- **Function input parameters**: Key-value pairs sent as additional parameters alongside the standard event payload. Parameters can be:
+  - **Set manually**: Static values.
+  - **Set dynamically**: Reference contact attributes via JSONPath.
+  - **JSON format**: Supports primitive types and nested JSON objects.
 
 ### Branches
 
@@ -36,36 +47,50 @@ When Connect invokes your Lambda function, it sends the following JSON event:
   "Details": {
     "ContactData": {
       "Attributes": {
-        "customKey1": "customValue1",
-        "customKey2": "customValue2"
+        "exampleAttributeKey1": "exampleAttributeValue1"
       },
       "Channel": "VOICE",
-      "ContactId": "abc12345-def6-7890-abcd-ef1234567890",
+      "ContactId": "4a573372-1f28-4e26-b97b-XXXXXXXXXXX",
       "CustomerEndpoint": {
-        "Address": "+12065551234",
+        "Address": "+1234567890",
         "Type": "TELEPHONE_NUMBER"
       },
-      "InitialContactId": "abc12345-def6-7890-abcd-ef1234567890",
-      "InitiationMethod": "INBOUND",
-      "InstanceARN": "arn:aws:connect:us-east-1:123456789012:instance/instance-id",
-      "Queue": {
-        "ARN": "arn:aws:connect:us-east-1:123456789012:instance/instance-id/queue/queue-id",
-        "Name": "BasicQueue"
-      },
-      "SystemEndpoint": {
-        "Address": "+18005551234",
-        "Type": "TELEPHONE_NUMBER"
-      },
+      "CustomerId": "someCustomerId",
+      "Description": "someDescription",
+      "InitialContactId": "4a573372-1f28-4e26-b97b-XXXXXXXXXXX",
+      "InitiationMethod": "INBOUND | OUTBOUND | TRANSFER | CALLBACK",
+      "InstanceARN": "arn:aws:connect:aws-region:1234567890:instance/c8c0e68d-2200-4265-82c0-XXXXXXXXXX",
+      "LanguageCode": "en-US",
       "MediaStreams": {
         "Customer": {
           "Audio": {
-            "StartFragmentNumber": "91343852333181432392682062622220590765191907586",
-            "StartTimestamp": "1565781909613",
-            "StreamARN": "arn:aws:kinesisvideo:us-east-1:123456789012:stream/connect-xxx/1234567890"
+            "StreamARN": "arn:aws:kinesisvideo:...",
+            "StartTimestamp": "1571360125131",
+            "StopTimestamp": "1571360126131",
+            "StartFragmentNumber": "100"
           }
         }
       },
-      "References": {}
+      "Name": "ContactFlowEvent",
+      "PreviousContactId": "4a573372-1f28-4e26-b97b-XXXXXXXXXXX",
+      "Queue": {
+        "ARN": "arn:aws:connect:...:instance/.../queue/...",
+        "Name": "BasicQueue",
+        "OutboundCallerId": {
+          "Address": "+12345678903",
+          "Type": "TELEPHONE_NUMBER"
+        }
+      },
+      "References": {
+        "key1": {
+          "Type": "url",
+          "Value": "urlvalue"
+        }
+      },
+      "SystemEndpoint": {
+        "Address": "+1234567890",
+        "Type": "TELEPHONE_NUMBER"
+      }
     },
     "Parameters": {
       "param1": "value1",
@@ -80,34 +105,49 @@ When Connect invokes your Lambda function, it sends the following JSON event:
 
 | Field | Description |
 |-------|-------------|
-| `Attributes` | User-defined contact attributes set earlier in the flow. |
+| `Attributes` | User-defined contact attributes set earlier in the flow. May be empty. |
 | `Channel` | `VOICE`, `CHAT`, or `TASK`. |
 | `ContactId` | Unique ID for this contact. |
 | `CustomerEndpoint.Address` | Customer's phone number (E.164) or chat endpoint. |
 | `CustomerEndpoint.Type` | `TELEPHONE_NUMBER` or `CHAT`. |
+| `CustomerId` | Customer identification number (if set). |
+| `Description` | Task description (if applicable). |
 | `InitialContactId` | The ID of the original contact (same as ContactId for initial contacts; differs for transfers). |
 | `InitiationMethod` | `INBOUND`, `OUTBOUND`, `TRANSFER`, `CALLBACK`, `QUEUE_TRANSFER`, `API`. |
 | `InstanceARN` | ARN of the Connect instance. |
-| `Queue` | Current queue (ARN and Name). Null if not yet queued. |
-| `SystemEndpoint.Address` | The phone number the customer dialed (DID/TFN). |
+| `LanguageCode` | Language/locale code (e.g., `en-US`). |
 | `MediaStreams` | Kinesis Video Stream details if media streaming is active. |
-| `References` | References attached to the contact. |
+| `Name` | Contact flow event name (`ContactFlowEvent`). |
+| `PreviousContactId` | ID of previous contact in transfer chain. |
+| `Queue` | Current queue (ARN, Name, OutboundCallerId). Null if not yet queued. |
+| `References` | References attached to the contact (key-value with type). |
+| `SystemEndpoint.Address` | The phone number the customer dialed (DID/TFN). |
 
 ### Parameters
 
-The `Parameters` object contains any key-value pairs configured in the `Invoke AWS Lambda function` block's "Function input parameters" section. Use these to pass flow-specific context to your Lambda.
+The `Parameters` object contains key-value pairs configured in the `Invoke AWS Lambda function` block's "Function input parameters" section. These support JSON format including nested objects:
+
+```json
+{
+  "Name": "Jane",
+  "Age": 10,
+  "isEnrolledInSchool": true,
+  "hobbies": {
+    "books": ["book1", "book2"],
+    "art": ["art1", "art2"]
+  }
+}
+```
 
 ## Response Format
 
-Lambda must return one of two formats:
+Lambda must return one of two formats, configured in the block's **Response validation** setting.
 
 ### STRING_MAP (Flat Key-Value)
 
 ```javascript
 exports.handler = async (event) => {
   const phoneNumber = event.Details.ContactData.CustomerEndpoint.Address;
-
-  // Your business logic here
   const customer = await lookupCustomer(phoneNumber);
 
   // Return flat key-value pairs (all values must be strings)
@@ -120,38 +160,48 @@ exports.handler = async (event) => {
 };
 ```
 
-All values must be strings. Numbers and booleans must be converted to strings.
+All values must be strings. Numbers and booleans must be converted to strings. Output returned must be a flat object of key/value pairs with values that include only alphanumeric, dash, and underscore characters.
 
 ### JSON (Nested)
 
 ```javascript
 exports.handler = async (event) => {
   const phoneNumber = event.Details.ContactData.CustomerEndpoint.Address;
-
   const customer = await lookupCustomer(phoneNumber);
 
   // Return nested JSON
   return {
-    customerName: customer.name,
-    accountId: customer.accountId,
-    address: {
-      street: customer.street,
-      city: customer.city,
-      state: customer.state
+    Name: {
+      First: "John",
+      Last: "Doe"
     },
-    recentOrders: [
-      { orderId: "123", status: "shipped" },
-      { orderId: "456", status: "delivered" }
-    ]
+    AccountId: "a12345689",
+    OrderIds: ["x123", "y123"]
   };
 };
 ```
 
-Nested values are accessible via JSONPath: `$.External.address.city`, `$.External.recentOrders[0].status`.
+Nested values are accessible via JSONPath: `$.External.Name.First`, `$.External.OrderIds[0]`.
+
+**Note**: Referencing arrays is not supported directly in flow blocks. Arrays can only be used in another Lambda function.
+
+### Python Example
+
+```python
+def lambda_handler(event, context):
+    phone = event['Details']['ContactData']['CustomerEndpoint']['Address']
+    customer_account_id = get_account_id_by_phone(phone)
+    customer_balance = get_balance_by_account_id(customer_account_id)
+
+    return {
+        "AccountId": customer_account_id,
+        "Balance": "$%s" % customer_balance
+    }
+```
 
 ### Response Limits
 
-- **Maximum response size: 32 KB**. If the response exceeds this, the Error branch is taken.
+- **Maximum response size: 32 KB** of UTF-8 data. If the response exceeds this, the Error branch is taken.
 - All top-level keys in STRING_MAP responses must be strings.
 - The response must be valid JSON.
 
@@ -167,23 +217,26 @@ Nested values are accessible via JSONPath: `$.External.address.city`, `$.Externa
 - Connect automatically retries Lambda invocations up to **3 times** on:
   - Throttling (429 / `TooManyRequestsException`)
   - Server errors (500-series)
-- Retries count toward the 8-second timeout. If all retries exhaust the timeout, the Error branch is taken.
+- When a synchronous invocation returns an error, Connect retries up to 3 times, for a maximum of 8 seconds.
+- At that point, the flow progresses down the Error branch.
 - Retries do NOT occur on client errors (4xx other than 429) or on responses that are simply too large.
 
 ## Accessing Lambda Response in the Flow
 
-### Direct Access
+### Direct Access (External Attributes)
 
 After a successful Lambda invocation, response values are available as External attributes:
 
 - `$.External.customerName`
 - `$.External.accountId`
-- `$.External.address.city` (for nested JSON responses)
+- `$.External.Name.First` (for nested JSON responses)
 
 Use these in:
 - `Check contact attributes` blocks for branching
 - `Play prompt` blocks for dynamic TTS: "Hello, $.External.customerName"
 - Other Lambda invocations as parameters
+
+External attributes reference the most recently invoked Lambda. To use a response before another Lambda is invoked, save the values as contact attributes or pass them as parameters.
 
 ### Saving to Contact Attributes
 
@@ -193,7 +246,40 @@ Use the `Set contact attributes` block to copy External attributes to user-defin
 - Source attribute: `customerName`
 - Destination key: `customerName`
 
-This is recommended if you need the values to persist beyond the immediate next block, or if you plan to invoke another Lambda (which overwrites `$.External`).
+This is recommended because:
+- External attributes are overwritten by the next Lambda call.
+- User-defined attributes persist in contact records.
+- User-defined attributes are available in the CCP for screenpop.
+
+### Parsing the Event in Lambda
+
+#### Node.js
+
+```javascript
+exports.handler = function(event, context, callback) {
+  // Access parameter from Invoke AWS Lambda function block
+  let parameter1 = event['Details']['Parameters']['exampleParameterKey1'];
+
+  // Access attribute from Set contact attributes block
+  let attribute1 = event['Details']['ContactData']['Attributes']['exampleAttributeKey1'];
+
+  // Access customer phone number from default data
+  let phone = event['Details']['ContactData']['CustomerEndpoint']['Address'];
+
+  // Apply business logic
+  // ...
+};
+```
+
+#### Python
+
+```python
+def lambda_handler(event, context):
+    parameter1 = event['Details']['Parameters']['exampleParameterKey1']
+    attribute1 = event['Details']['ContactData']['Attributes']['exampleAttributeKey1']
+    phone = event['Details']['ContactData']['CustomerEndpoint']['Address']
+    # Apply business logic
+```
 
 ## Best Practices
 
@@ -201,8 +287,9 @@ This is recommended if you need the values to persist beyond the immediate next 
 
 If you chain multiple Lambda invocations, insert a `Play prompt` block between them:
 - Provides feedback to the customer ("One moment while I look that up...")
-- Helps stay within the 20-second total chain limit by giving each Lambda its own window
-- Prevents silence on the line during processing
+- Helps stay within the 20-second total chain limit by giving each Lambda its own window.
+- Prevents silence on the line during processing.
+- By breaking up a chain with Play prompt blocks, you can invoke functions lasting longer than 20 seconds total.
 
 ### Error Handling
 
@@ -379,3 +466,64 @@ exports.handler = async (event) => {
   return { found: "false" };
 };
 ```
+
+### Tutorial: End-to-End Lambda Integration
+
+A complete tutorial flow demonstrating Lambda integration:
+
+1. **Set contact attributes**: Set `companyName` to a static value.
+2. **Play prompt**: Greet the customer using TTS with the company name attribute.
+3. **Invoke Lambda**: Pass `companyName` as a parameter. Lambda returns `customerBalance` and `websiteUrl`.
+4. **Set contact attributes**: Copy `$.External.customerBalance` to `MyBalance` and `$.External.websiteUrl` to `MyURL`.
+5. **Play prompt**: Read back the balance and website URL using SSML.
+6. **Disconnect**: End the call.
+
+Lambda code for the tutorial:
+
+```javascript
+exports.handler = async (event, context, callback) => {
+  const customerNumber = event.Details.ContactData.CustomerEndpoint.Address;
+  const companyName = event.Details.Parameters.companyName;
+
+  const balance = await fetchBalance(customerNumber, companyName);
+  const support = await fetchSupportUrl(companyName);
+
+  const resultMap = {
+    customerBalance: balance,
+    websiteUrl: support
+  };
+  callback(null, resultMap);
+};
+```
+
+## Lambda Permissions
+
+### Resource-Based Policy
+
+When you add a Lambda to your Connect instance via the console, Connect automatically adds a resource-based policy allowing invocation. For manual setup:
+
+```
+Principal: connect.amazonaws.com
+Source Account: <your-account-id>
+Source ARN: <your-connect-instance-arn>
+Action: lambda:InvokeFunction
+```
+
+Use the AWS CLI `add-permission` command for cross-region or cross-account setups.
+
+### Lambda Execution Role
+
+The Lambda function's execution role needs permissions for whatever resources it accesses (DynamoDB, S3, Connect APIs, etc.). This is standard Lambda IAM configuration, not Connect-specific.
+
+## Limits Summary
+
+| Limit | Value |
+|-------|-------|
+| Maximum timeout per invocation | 8 seconds |
+| Maximum cumulative Lambda chain duration | 20 seconds |
+| Maximum response size | 32 KB (UTF-8) |
+| Retry attempts on throttle/5xx | 3 |
+| Response format | STRING_MAP or JSON |
+| Concurrent Lambda limits | Standard AWS Lambda service quotas |
+| Cross-region Lambda | Supported (enter ARN directly, configure resource-based policy) |
+| Cross-account Lambda | Supported (enter ARN directly, configure resource-based policy) |

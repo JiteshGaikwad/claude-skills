@@ -2,6 +2,8 @@
 
 Common issues, diagnostics, and resolution steps for the Amazon Connect Contact Control Panel.
 
+Troubleshooting CCP issues requires support from network operations, system administrator, and virtual desktop (VDI) solution teams. Categorize issues by symptoms to determine appropriate resources to engage.
+
 ---
 
 ## No Audio Issues
@@ -25,11 +27,16 @@ Common issues, diagnostics, and resolution steps for the Amazon Connect Contact 
    - Edge: click the lock icon > Site permissions > Microphone > Allow.
    - After changing permissions, refresh the page.
 
-3. **WebRTC media path blocked by firewall.**
+3. **Application has exclusive control of microphone/speaker (Windows).**
+   - Another application may have taken exclusive control of the audio device.
+   - On Windows: open Sound settings > Playback device > Properties > Advanced tab > uncheck "Allow applications to take exclusive control of this device."
+   - On Mac: check Sound settings > Input and verify no other application is using the microphone.
+
+4. **WebRTC media path blocked by firewall.**
    - Softphone uses WebRTC for media. If the outbound UDP path on ports 3478 and 49152-65535 is blocked, media cannot flow.
    - See "Network Diagnostics" section below.
 
-4. **VPN or proxy intercepting media traffic.**
+5. **VPN or proxy intercepting media traffic.**
    - Split tunneling must be configured to route media traffic directly, not through the VPN tunnel.
    - See "Corporate Proxy/VPN Issues" section below.
 
@@ -65,11 +72,79 @@ Common issues, diagnostics, and resolution steps for the Amazon Connect Contact 
 
 2. **WebRTC entirely blocked.**
    - Some corporate networks block WebRTC entirely.
-   - Run the Amazon Connect connectivity tool (see "Network Diagnostics").
+   - Run the Amazon Connect Endpoint Test Utility (see "Endpoint Test Utility").
    - Switch to desk phone mode as a workaround while network issues are resolved.
 
 3. **Browser does not support WebRTC.**
    - Use a supported browser (see "Browser Issues").
+
+---
+
+## CCP Browser Microphone Access
+
+The CCP conforms to microphone usage guidance specific to each browser:
+- Microphone access permission is stored in the browser's memory for the current session.
+- **Firefox specifically** requires the CCP tab to be in focus for microphone and audio to pass through.
+
+**Symptoms:** Missed calls when CCP tab has no microphone access or is not in focus.
+
+**Error message:** "Microphone is not accessible" / "Enable access to the microphone and refresh the page"
+
+**Fixes:**
+- If using Firefox, ensure agents focus on the CCP tab when accepting voice contacts.
+- Use the Endpoint Test Utility to verify browser media device access.
+- Check browser permissions for the Connect domain.
+
+---
+
+## CCP Initialization Issues
+
+**Symptoms:** CCP shows "Initialization Failed" error, resulting in missed calls.
+
+**Cause:** Missing domain or port/IP allowlist entries in the agent environment. The CCP initialization depends on API and signaling endpoints accessed via allowlisted domains such as `*{{myInstanceName}}.awsapps.com/connect/api` and `*.transport.connect.{{region}}.amazonaws.com`.
+
+**Error message:** "Initialization Failed" / "Try fixing your connection by logging out, and then logging on again."
+
+**Fixes:**
+- Verify all required domains and IP addresses are allowlisted (see "Verify Firewall Rules" below).
+- Use the Endpoint Test Utility to check endpoint connectivity.
+- Check agent network connections for latency or outages.
+
+---
+
+## CCP WebRTC Issues
+
+**Symptoms:** Missed calls due to WebRTC `ice_collection_timeout`.
+
+**Cause:** Request to Connect Softphone Media (`TurnNlb-xxxxxxxxxxxxx.elb.{{region}}.amazonaws.com:3478?transport=udp`) times out and the CCP cannot collect ICE candidates to establish a connection.
+
+**Error message:** "ice_collection_timeout" / "Call failed due to a browser-side WebRTC issue."
+
+**Fixes:**
+- Check firewall/NAT settings to allow UDP 3478 outbound traffic to Amazon Connect Softphone Media.
+- Use the Endpoint Test Utility to verify endpoint connectivity.
+- Check network conditions for latency or congestion.
+
+---
+
+## Windows 11 Audio Failure on First Call After Reboot
+
+**Symptoms:** Complete audio failure ("dead air") on the first call after a Windows 11 system reboot. Neither agent nor customer can hear each other.
+
+**Root cause:** Two Windows 11 behaviors:
+1. The network interface card (NIC) unexpectedly restarts when Chrome/Edge browsers request audio packet prioritization.
+2. Volume control adjustments trigger network-related services, causing NIC restarts.
+
+**Affected systems:** Windows 11 workstations with Chrome or Edge browsers.
+
+**Resolution:** Modify the startup type of the following Windows services from **Manual** to **Automatic** (requires admin privileges):
+- **qWAVE** (Quality Windows Audio/Video Experience)
+- **ndisuio.sys**
+- **dmwAppushSvc** (Device Management Wireless Application Protocol Push message Routing Service)
+- **SstpSvc** (Secure Socket Tunneling Protocol Service)
+- **RasMan** (Remote Access Connection Manager)
+
+This ensures critical services that could restart the NIC are launched before the agent's first call.
 
 ---
 
@@ -156,6 +231,34 @@ Common issues, diagnostics, and resolution steps for the Amazon Connect Contact 
 
 ---
 
+## Outbound Call Issues
+
+### Invalid Outbound Configuration
+
+**Symptoms:** Agent sees "Invalid outbound configuration" / "Before you can place an outbound call, you must associate a phone number with this queue."
+
+**Fixes:**
+1. Enable outbound calling on the instance: Connect console > Instance > Telephony > "I want to make outbound calls with Connect."
+2. Set outbound caller ID name and number on the default outbound queue.
+3. Ensure agents have the **"Contact Control Panel (CCP) - Make outbound calls"** permission in their security profile.
+
+### Invalid Number
+
+**Symptoms:** Agent sees "Invalid number" / "We are unable to complete the call as dialed."
+
+**Fixes:**
+1. Verify the phone number is in **E.164 format** (e.g., +12025551234).
+2. Verify the destination country is in the instance's allowed calling list.
+3. If issues persist, contact AWS Support.
+
+### Caller ID Not Showing
+
+- Check queue outbound caller ID configuration.
+- Verify the claimed number supports outbound calling.
+- Ensure the outbound caller ID number is set in the queue settings.
+
+---
+
 ## Error States
 
 **Symptoms:** Agent is stuck in "Error" or "Missed" state.
@@ -178,19 +281,49 @@ Common issues, diagnostics, and resolution steps for the Amazon Connect Contact 
 
 ---
 
+## Endpoint Test Utility
+
+AWS provides the [Amazon Connect Endpoint Test Utility](https://tools.connect.aws/endpoint-test/) for validating connectivity.
+
+### What It Tests
+
+- Validates that the browser supports WebRTC
+- Determines if the browser has appropriate access to media devices (microphone, speakers, etc.)
+- Performs latency tests for all active Connect regions
+- Performs latency tests to a specific Connect instance (if provided)
+- Validates network connectivity across required ports for media streams
+
+### How to Use
+
+1. Navigate to `https://tools.connect.aws/endpoint-test/`
+2. Optionally provide your Connect instance URL for instance-specific tests
+3. Run the tests
+4. Download results as a JSON file for support tickets
+5. Use "Load previous results" to re-analyze saved results
+6. Download a bookmark for your instance to simplify future tests
+
+### URL Parameters for Customization
+
+| Parameter | Description | Values |
+|---|---|---|
+| `lng` | Language | `en` (default), `es`, `fr` |
+| `autoRun` | Run tests automatically | `true`, `false` (default) |
+| `connectInstanceUrl` | Instance URL (must start with https) | Instance URL |
+| `regions` | Comma-separated region codes | e.g., `us-east-1,us-west-2` |
+
+Example: `https://tools.connect.aws/endpoint-test/?lng=es&autoRun=true&connectInstanceUrl=https://myinstance.awsapps.com&regions=us-east-1,us-west-2`
+
+### Run Before Deployment
+
+Run the Endpoint Test Utility on agent workstations before deployment to validate:
+- TURN server reachability
+- DNS resolution
+- WebRTC capability
+- Media path connectivity
+
+---
+
 ## Network Diagnostics
-
-### Amazon Connect Connectivity Tool
-
-AWS provides a browser-based connectivity test:
-
-1. Navigate to `https://{instance}.my.connect.aws/ccp-v2/` and log in.
-2. Use the built-in connectivity check in CCP settings, or use the standalone Amazon Connect Check tool.
-3. The tool tests:
-   - HTTPS connectivity to Connect APIs.
-   - WebSocket connectivity for signaling.
-   - WebRTC media path (TURN/STUN servers).
-   - Latency to the Connect instance region.
 
 ### Check WebRTC Connectivity
 
@@ -218,6 +351,7 @@ Required domains to allowlist:
 | `*.execute-api.{region}.amazonaws.com` | API calls |
 | `{region}.turn.connect.aws` | TURN servers |
 | `*.cloudfront.net` | CDN for static assets |
+| `*{myInstanceName}.awsapps.com` | Legacy instance domains |
 
 Replace `{region}` with the AWS region of the Connect instance (e.g., `us-east-1`).
 
@@ -235,6 +369,63 @@ Measure bandwidth to the AWS region hosting the instance, not just to generic sp
 
 ---
 
+## QualityMetrics in Contact Records
+
+### Where to Find
+
+QualityMetrics is part of the contact object returned by the `DescribeContact` API and also available via Kinesis CTR events. It is **not** available through the Connect admin website contact record view, and **not** part of EventBridge events.
+
+```json
+"QualityMetrics": {
+  "Agent": {
+    "Audio": {
+      "PotentialQualityIssues": ["string"],
+      "QualityScore": number
+    }
+  },
+  "Customer": {
+    "Audio": {
+      "PotentialQualityIssues": ["string"],
+      "QualityScore": number
+    }
+  }
+}
+```
+
+### Fields
+
+| Field | Description | Range |
+|---|---|---|
+| **QualityScore** | Overall audio quality estimate | 1.00 (poor) to 5.00 (high) |
+| **PotentialQualityIssues** | List of detected issues | Empty list = no issues detected |
+
+### PotentialQualityIssues Values
+
+| Issue | Description | Common Causes |
+|---|---|---|
+| `HighPacketLoss` | Packet loss on outbound audio (egress) stream | Poor network, congestion, constrained bandwidth, competing applications |
+| `HighJitterBuffer` | Excessive delay introduced by browser buffer to reorder audio packets | Network/hardware congestion, low bandwidth router; >30ms or frequently changing = problem |
+| `HighRoundTripTime` | High RTT between participant device and Connect endpoint | Low-bandwidth network, VPN overhead, geographic distance to AWS region, virtualized desktop routing |
+
+### Audio Quality Symptoms
+
+| Symptom | Observation | Likely Cause |
+|---|---|---|
+| Choppy/broken audio | Audio stream interrupted, sounds choppy | Packet loss from poor network connectivity |
+| Delayed audio | Delayed audio from other side, consistent overlapping | Constrained bandwidth/hardware/workstation congestion |
+| Echo | Agent hears own voice repeated with delay | Audio feedback between microphone and speaker |
+| Background noise | Extraneous noise (fans, typing, call center) | Environmental, microphone sensitivity |
+| Distorted audio | Garbled or robotic-sounding audio | Bandwidth issues or faulty hardware |
+
+### Analyzing Impact
+
+Use QualityMetrics with other CTR fields (`AgentHierarchyGroup`, `DeviceInfo`) to identify patterns:
+- **Scenario 1:** Single agent affected -- likely workstation/browser/network config issue
+- **Scenario 2:** Multiple agents in same hierarchy/location -- likely local network issue (modem/ISP/router/LAN) or recent software upgrades
+- **Scenario 3:** Multiple remote agents -- check browser/system updates and organizational network changes
+
+---
+
 ## Softphone Errors
 
 ### Microphone Permissions
@@ -245,7 +436,7 @@ When the CCP first loads, the browser requests microphone access. If denied:
 - **Firefox:** shows a notification bar. Click "Allow."
 - **Edge:** similar to Chrome, click the lock icon to change permissions.
 
-If microphone access was permanently denied, the agent must manually update browser settings:
+If microphone access was permanently denied:
 
 1. Navigate to browser settings > Site settings > Microphone.
 2. Find the Connect domain in the blocked list.
@@ -276,7 +467,7 @@ If microphone access was permanently denied, the agent must manually update brow
 | Browser | Minimum Version | Notes |
 |---|---|---|
 | Google Chrome | Latest 3 major versions | Recommended. Best WebRTC support. |
-| Mozilla Firefox | Latest 3 major versions | Supported. May require additional permissions configuration. |
+| Mozilla Firefox | Latest 3 major versions | Supported. Requires CCP tab in focus for audio. May require additional permissions. |
 | Microsoft Edge (Chromium) | Latest 3 major versions | Supported. Same engine as Chrome. |
 | Safari | Not recommended | Limited WebRTC support. Third-party cookie issues. |
 
@@ -334,26 +525,48 @@ When filing an AWS support case for CCP issues, collect:
 
 ### CCP Logs
 
-The CCP generates internal logs accessible via the Streams API:
+Download CCP logs directly from the agent's CCP:
+
+1. In the CCP, choose **Settings > Download logs**.
+2. The `agent-log.txt` file saves to the browser's default download directory.
+3. The file can be renamed after download.
+
+**Note:** CCP logs do not persist through browser refreshes. Download before refreshing.
+
+### CCP Log Parser
+
+AWS provides a dedicated log parser tool:
+
+1. Open `https://tools.connect.aws/ccp-log-parser/`
+2. Drag and drop the `agent-log.txt` file into the parser
+3. **Snapshots & Logs tab** -- view log entries with expandable JSON details
+4. **Snapshots panel** -- view agent status captured during periodic AgentSnapshot retrieval
+5. **Metrics tab** provides:
+   - **Skew Metrics** -- difference between client-side and server-side timestamps (milliseconds)
+   - **API Call Metrics** -- latency of API calls from CCP
+   - **WebRTC Metrics** -- media stream conditions during calls (available if softphone was used)
+
+### Programmatic Log Download
 
 ```javascript
-// Download CCP logs
+// Download CCP logs via Streams API
 connect.getLog().download();
 ```
 
-This downloads a log file containing CCP events, errors, and timing information.
+### Information to Include in Support Cases
 
-### Information to Include
-
-- Connect instance alias and region.
-- Agent username.
-- Contact ID(s) affected.
-- Timestamp of the issue (with timezone).
-- Browser name and version.
-- Operating system and version.
-- Network environment (corporate network, VPN, home network).
-- Steps to reproduce.
-- Screenshots or screen recordings if applicable.
+- Connect instance alias and region
+- Agent username
+- Contact ID(s) affected
+- Timestamp of the issue (with timezone)
+- Browser name and version
+- Operating system and version
+- Network environment (corporate network, VPN, home network)
+- Steps to reproduce
+- Screenshots or screen recordings if applicable
+- CCP logs (`agent-log.txt`)
+- HAR file
+- Browser console logs
 
 ---
 
@@ -363,10 +576,10 @@ This downloads a log file containing CCP events, errors, and timing information.
 
 Corporate networks often route all traffic through a proxy server or VPN tunnel. This can cause:
 
-- WebRTC media failure (proxy cannot handle UDP).
-- High latency (traffic routed through distant proxy servers).
-- WebSocket connection drops (proxy timeout on long-lived connections).
-- Certificate inspection breaking TLS (proxy MITM).
+- WebRTC media failure (proxy cannot handle UDP)
+- High latency (traffic routed through distant proxy servers)
+- WebSocket connection drops (proxy timeout on long-lived connections)
+- Certificate inspection breaking TLS (proxy MITM)
 
 ### Split Tunneling
 
@@ -408,34 +621,97 @@ Agent Browser
 
 The key principle: **media traffic (UDP) should bypass the proxy**. Signaling traffic (HTTPS/WSS) can go through the proxy if it supports WebSocket and does not break TLS.
 
-### Endpoint Test Utility
-- Available from Connect admin console under "Troubleshooting"
-- Tests: network connectivity, WebSocket, media path, browser compatibility
-- Results: pass/fail for each endpoint category
-- Run before deployment to validate agent workstations
-- Checks TURN server reachability, DNS resolution, and WebRTC capability
+---
 
-### QualityMetrics in Contact Records
-- Contact record field: `QualityMetrics`
-- Contains: MOS (Mean Opinion Score 1-5), jitter (ms), packet loss (%), round-trip time (ms)
-- Access via `GetContactAttributes` API or contact record export
-- Use for: diagnosing audio quality issues after the fact, trending quality over time
+## Attachment Issues (Chat, Email, Task, Case)
 
-### Outbound Call Issues
-- **Agent can't make outbound calls**: Check routing profile has outbound queue assigned, verify security profile has "Make outbound calls" permission, confirm phone number has outbound capability
-- **Caller ID not showing**: Check queue outbound caller ID config, verify claimed number supports outbound
+**Symptoms:** Attachments not displaying for agents in chat, email, tasks, or Cases.
 
-### Mobile/Tablet Support
-- CCP and agent workspace do NOT support mobile phones (iPhone/Android) or iPads
-- Desktop browser required for full functionality
-- Desk phone mode works from any phone but the UI must remain on a desktop browser
+**Causes and fixes:**
 
-### Screen Recording Issues
-- **Not starting**: Check Set Recording block in flow, verify screen recording enabled on instance
-- **Quality issues**: Depends on agent screen resolution and network bandwidth
-- **Storage**: Recordings stored in S3; check bucket permissions and encryption config
+1. **CORS policy not configured on attachments S3 bucket.**
+   - Configure CORS policy on the attachments bucket per the Connect documentation.
 
-### Audio Humming/Buzzing
-- **Cause**: Sample rate mismatch between headset and browser audio context
-- **Fix**: Ensure headset sample rate matches browser (typically 48kHz)
-- **USB headsets preferred** over Bluetooth (lower latency, fewer codec issues)
+2. **Internal firewall blocking S3 access.**
+   - Add the S3 bucket domain to the firewall allowlist.
+
+3. **Attachments exceed size/count/type limits.**
+   - Maximum attachment size: configurable up to 100 MB (default 20 MB).
+   - Verify the configured size limit for your instance.
+   - Check that file types are in the allowed file extensions list.
+
+4. **File type rejected despite expected allowance.**
+   - Verify the file extension has been explicitly added to the allowed file extensions list for the instance.
+
+---
+
+## Screen Recording Issues
+
+### Chrome/Edge 147+ LNA Restriction (Critical)
+
+Starting with Chrome 147 and Edge 147, Chromium-based browsers enforce Local Network Access (LNA) restrictions on WebSocket connections. This blocks the local WebSocket connection between the CCP and the Connect Client Application, causing screen recordings to fail. **Affected recordings cannot be recovered.**
+
+**Symptoms:**
+- Screen recording does not start for agents using Chrome 147+ or Edge 147+
+- Works correctly on older browser versions
+- Shared worker logs show: `IPC connection terminated with status code 1006`
+- Shared worker or CCP logs show: `ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`
+
+**Confirm the issue:**
+- Chrome: navigate to `chrome://flags/#local-network-access-check`, set to "Disabled", restart Chrome
+- Edge: navigate to `edge://flags/#local-network-access-check`, set to "Disabled", restart Edge
+- If screen recording resumes, the issue is confirmed
+
+**Resolution:** Deploy the `LoopbackNetworkAllowedForUrls` enterprise policy to pre-grant loopback network access for your CCP domain. Configure with: `[*.]my.connect.aws`
+
+### General Screen Recording Issues
+
+- **Not starting:** Check that the Set Recording block is in the contact flow and screen recording is enabled on the instance.
+- **Quality issues:** Depends on agent screen resolution and network bandwidth.
+- **Storage:** Recordings stored in S3; check bucket permissions and encryption configuration.
+- **Client Application not installed:** The Connect Client Application must be installed and running on the agent machine.
+
+---
+
+## Audio Humming/Buzzing
+
+**Cause:** Sample rate mismatch between the headset and browser audio context. Most commonly seen with Firefox when a headset has a preferred sample rate of 16000 Hz but the browser asserts 48000 Hz.
+
+**Required sample rate:** 48000 Hz (48 kHz) for both input and output devices.
+
+### Verify Firefox Sample Rate
+
+1. Open CCP in Firefox, set status to Available, accept a call.
+2. Open a second Firefox tab, type `about:support` in the address bar.
+3. Scroll to **Media** section.
+4. Verify input and output device sample rates are **48000**.
+
+### Verify Chrome Sample Rate
+
+1. Open CCP in Chrome, set status to Available, accept a call.
+2. Open a second Chrome tab, type `chrome://media-internals` in the address bar.
+3. On the **Audio** tab, check **Input Controllers** and **Output Controllers**.
+4. Verify sample rates are **48000**.
+
+### Fix
+
+1. Go to the operating system sound settings and change the sample rate to 48000 if different.
+2. If the headset does not support 48000 Hz, switch to a headset that does.
+3. **USB headsets are preferred** over Bluetooth (lower latency, fewer codec issues).
+
+---
+
+## Mobile/Tablet Support
+
+The Connect admin website, Contact Control Panel (CCP), and agent workspace do **NOT** support:
+- Mobile phones (iPhone, Android)
+- iPads/tablets
+- Mobile browsers
+
+**Desktop browser is required** for full CCP functionality.
+
+**Workaround for audio on mobile:** Configure CCP to forward the audio portion of calls to a mobile device using desk phone mode:
+1. In CCP, open Settings.
+2. Under Phone type, choose **Desk phone**.
+3. Enter the mobile phone number and save.
+4. Audio goes to the mobile device; the agent manages the call via CCP on a desktop browser.

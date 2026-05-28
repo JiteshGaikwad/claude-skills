@@ -12,9 +12,9 @@ The Contact Search page provides a powerful interface for locating specific cont
 
 ## Search Scope
 
-- **Historical contacts** — Search contacts up to **2 years** (24 months) back from the current date.
-- **In-progress contacts** — Search for contacts that are currently active (connected, queued, in ACW).
-- **All channels** — Voice, chat, task, and email contacts are all searchable.
+- **Historical contacts** -- Search contacts up to **2 years** (24 months) back from the current date.
+- **In-progress contacts** -- Search for contacts that are currently active (connected, queued, in ACW).
+- **All channels** -- Voice, chat, task, and email contacts are all searchable.
 
 ---
 
@@ -29,8 +29,8 @@ The Contact Search page provides a powerful interface for locating specific cont
 | **Agent** | Filter by the agent who handled the contact. |
 | **Queue** | Filter by the queue the contact was routed through. |
 | **Channel** | VOICE, CHAT, TASK, or EMAIL. |
-| **Initiation method** | INBOUND, OUTBOUND, TRANSFER, CALLBACK, API, QUEUE_TRANSFER, EXTERNAL_OUTBOUND. |
-| **Disconnect reason** | CUSTOMER_DISCONNECT, AGENT_DISCONNECT, TELECOM_PROBLEM, CONTACT_FLOW_DISCONNECT, etc. |
+| **Initiation method** | INBOUND, OUTBOUND, TRANSFER, CALLBACK, API, QUEUE_TRANSFER, EXTERNAL_OUTBOUND, MONITOR, DISCONNECT. |
+| **Disconnect reason** | CUSTOMER_DISCONNECT, AGENT_DISCONNECT, THIRD_PARTY_DISCONNECT, TELECOM_PROBLEM, CONTACT_FLOW_DISCONNECT, EXPIRED, OTHER. |
 | **Date range** | Start and end timestamps for the search window. |
 
 ### Contact Attributes
@@ -40,6 +40,7 @@ Search by custom contact attributes set during the contact flow:
 - Specify the attribute key and value.
 - Supports exact match.
 - Multiple attribute filters can be combined (AND logic).
+- Maximum 10 contact attribute filters per search.
 
 Example: Search for contacts where `AccountType = Premium` and `Region = West`.
 
@@ -49,7 +50,7 @@ Search by segment-level attributes:
 
 | Attribute | Description |
 |---|---|
-| `connect:Subtype` | Channel subtype (e.g., `connect:SMS`, `connect:WebRTC`). |
+| `connect:Subtype` | Channel subtype (e.g., `connect:SMS`, `connect:WebRTC`, `connect:Email`). |
 | `connect:Direction` | INBOUND or OUTBOUND. |
 
 ### Contact Lens Categories
@@ -59,23 +60,38 @@ Filter contacts by Contact Lens category matches:
 - Select one or more categories.
 - Returns contacts that matched the selected categories during analysis.
 - Useful for finding compliance violations, escalations, or specific interaction patterns.
+- Requires Contact Lens to be enabled.
 
 ### Additional Filters
 
 | Filter | Description |
 |---|---|
 | **Routing profile** | Filter by agent's routing profile. |
-| **Agent hierarchy** | Filter by agent hierarchy group (any level). |
+| **Agent hierarchy** | Filter by agent hierarchy group (any level 1-5). |
 | **Contact flow** | Filter by the contact flow used. |
 | **Has recording** | Filter for contacts with or without recordings. |
 | **Has evaluation** | Filter for contacts with or without evaluations. |
 | **Evaluation score range** | Filter by evaluation score (min/max). |
 | **Sentiment** | Filter by overall customer or agent sentiment range. |
+| **Tags** | Filter by resource tags applied to contacts. |
 
-### MVP (Minimum Viable Priority) and In-Progress Contacts
+### In-Progress Contact Filters
 
-- Search includes filters for **in-progress contacts** to find active interactions.
-- Filter by contact state (CONNECTED, QUEUED, etc.) to narrow to specific stages.
+- Filter by contact state: CONNECTED, QUEUED, etc.
+- Narrow to specific stages of active interactions.
+
+---
+
+## Transcript Search
+
+When Contact Lens is enabled, you can search within conversation transcripts:
+
+- Search for specific words or phrases.
+- Filter by participant role (AGENT, CUSTOMER, or both).
+- Match type:
+  - **MATCH_ALL** -- All terms must appear in the transcript.
+  - **MATCH_ANY** -- Any term matches.
+- Results highlight the matching segments in the transcript.
 
 ---
 
@@ -102,6 +118,11 @@ Filter contacts by Contact Lens category matches:
 - Default page size depends on the console view.
 - Use `NextToken` in API calls for pagination.
 
+### Download / Export
+
+- Download current search results as CSV from the console.
+- For bulk export, use the analytics data lake or Kinesis streaming.
+
 ---
 
 ## Contact Details Page
@@ -112,14 +133,15 @@ Clicking a contact in search results opens the Contact details page.
 
 | Section | Content |
 |---|---|
-| **Contact information** | Contact ID, channel, initiation method, timestamps, disconnect reason, queue, agent, duration breakdown. |
+| **Contact information** | Contact ID, channel, initiation method, timestamps (initiation, connected, disconnect), disconnect reason, queue, agent, duration breakdown (queue time, interaction time, hold time, ACW time). |
 | **Contact attributes** | All custom attributes set during the contact. |
 | **Recording** | Audio recording player (voice) or chat transcript. Screen recording player (if enabled). |
-| **Transcript** | Full transcript with speaker labels, timestamps, and sentiment per turn. |
-| **Analytics** | Contact Lens results — sentiment scores, categories, talk time, key highlights. |
-| **Evaluations** | Completed and draft evaluations for this contact. |
-| **Contact chain** | Visual chain showing transfers and linked contacts. |
-| **References** | Any attached references (URLs, files). |
+| **Transcript** | Full transcript with speaker labels, timestamps, and sentiment per turn. Highlights for matched categories. |
+| **Analytics** | Contact Lens results -- sentiment scores (overall, per-turn, end-of-call), categories matched, talk time breakdown, non-talk time, interruptions, key highlights (issue, outcome, action item). |
+| **Evaluations** | Completed and draft evaluations for this contact. Start new evaluations from here. |
+| **Contact chain** | Visual chain showing transfers and linked contacts (initial, previous, next, related contact IDs). |
+| **References** | Any attached references (URLs, attachments, files). |
+| **AI Agent info** | AI agent use case, version, escalation status (if applicable). |
 
 ### For In-Progress Contacts
 
@@ -129,17 +151,27 @@ Clicking a contact in search results opens the Contact details page.
 | **Contact information** | Current state, time in state, queue, agent (if connected). |
 | **Contact attributes** | Attributes set so far in the contact flow. |
 
+---
+
+## Contact Management Actions
+
 ### Actions on In-Progress Contacts
 
 From the Contact details page for an in-progress contact, authorized users can:
 
-| Action | Description |
-|---|---|
-| **Transfer** | Transfer the contact to a different queue or agent. |
-| **Reschedule** | Reschedule a callback contact to a different time. |
-| **End** | Force-end the contact. The contact disconnects immediately. |
+| Action | Permission Required | Description |
+|---|---|---|
+| **Transfer** | `Contact search - Transfer contact` | Transfer the contact to a different queue or agent. |
+| **Reschedule** | `Contact search - Reschedule contact` | Reschedule a callback contact to a different time. |
+| **End** | `Contact search - End contact` | Force-end the contact. The contact disconnects immediately. |
 
-These actions require specific security profile permissions.
+### Monitoring
+
+Supervisors can monitor in-progress voice contacts:
+
+- **Silent monitoring**: Listen to the call without the agent or customer knowing.
+- **Barge**: Join the call and speak to both agent and customer.
+- Requires appropriate security profile permissions.
 
 ---
 
@@ -166,6 +198,7 @@ POST /contact/search
     "Channels": ["VOICE"],
     "QueueIds": ["queue-id-1"],
     "InitiationMethods": ["INBOUND"],
+    "DisconnectReasons": ["CUSTOMER_DISCONNECT"],
     "ContactAnalysis": {
       "Transcript": {
         "Criteria": [
@@ -175,6 +208,10 @@ POST /contact/search
             "SearchText": ["cancel", "refund"]
           }
         ]
+      },
+      "Category": {
+        "MatchType": "MATCH_ALL",
+        "Values": ["Escalation", "Complaint"]
       }
     },
     "SearchableContactAttributes": {
@@ -182,6 +219,15 @@ POST /contact/search
         {
           "Key": "AccountType",
           "Values": ["Premium"]
+        }
+      ],
+      "MatchType": "MATCH_ALL"
+    },
+    "SearchableSegmentAttributes": {
+      "Criteria": [
+        {
+          "Key": "connect:Subtype",
+          "Values": ["connect:SMS"]
         }
       ],
       "MatchType": "MATCH_ALL"
@@ -202,13 +248,13 @@ POST /contact/search
 | Contact ID | `SearchCriteria.ContactId` | Exact contact ID. |
 | Agent | `SearchCriteria.AgentIds` | List of agent IDs. |
 | Queue | `SearchCriteria.QueueIds` | List of queue IDs. |
-| Channel | `SearchCriteria.Channels` | List of channels. |
+| Channel | `SearchCriteria.Channels` | List of channels (VOICE, CHAT, TASK, EMAIL). |
 | Initiation method | `SearchCriteria.InitiationMethods` | List of initiation methods. |
 | Disconnect reason | `SearchCriteria.DisconnectReasons` | List of disconnect reasons. |
-| Contact attributes | `SearchCriteria.SearchableContactAttributes` | Key-value attribute filters. |
-| Segment attributes | `SearchCriteria.SearchableSegmentAttributes` | Segment attribute filters. |
-| Transcript text | `SearchCriteria.ContactAnalysis.Transcript` | Full-text search in transcripts. |
-| Category | `SearchCriteria.ContactAnalysis.Category` | Contact Lens category match. |
+| Contact attributes | `SearchCriteria.SearchableContactAttributes` | Key-value attribute filters with MatchType. |
+| Segment attributes | `SearchCriteria.SearchableSegmentAttributes` | Segment attribute filters with MatchType. |
+| Transcript text | `SearchCriteria.ContactAnalysis.Transcript` | Full-text search in transcripts with participant role and match type. |
+| Category | `SearchCriteria.ContactAnalysis.Category` | Contact Lens category match with MatchType and Values. |
 
 ### Sort Options
 
@@ -222,24 +268,13 @@ POST /contact/search
 
 ### Response
 
-Returns a list of contact summaries with pagination token. Each summary includes:
+Returns a list of contact summaries with pagination token (`NextToken`). Each summary includes:
 - ContactId, InitialContactId
 - Channel, InitiationMethod, DisconnectReason
 - Timestamps (initiation, connected, disconnect, scheduled)
 - Agent info (ID, connect timestamp)
 - Queue info (ID, enqueue timestamp)
 - Contact Lens analysis summary (if available)
-
----
-
-## Transcript Search
-
-When Contact Lens is enabled, you can search within conversation transcripts:
-
-- Search for specific words or phrases.
-- Filter by participant role (AGENT, CUSTOMER, or both).
-- Match type: MATCH_ALL (all terms must appear) or MATCH_ANY (any term matches).
-- Results highlight the matching segments in the transcript.
 
 ---
 
@@ -268,3 +303,4 @@ When Contact Lens is enabled, you can search within conversation transcripts:
 | Maximum contact attribute filters | 10 per search |
 | Transcript search | Requires Contact Lens to be enabled |
 | In-progress contact actions | Require specific security profile permissions |
+| Pagination | Use NextToken for results beyond MaxResults |

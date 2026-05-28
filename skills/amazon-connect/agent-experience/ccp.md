@@ -4,6 +4,38 @@ The Contact Control Panel (CCP) is the primary interface agents use to handle co
 
 ---
 
+## Launch and Login
+
+### CCP URL
+
+- Standalone: `https://{instance-alias}.my.connect.aws/ccp-v2/`
+- Embedded in workspace: `https://{instance-alias}.my.connect.aws/agent-app-v2/`
+
+### Login Options
+
+| Method | Description |
+|---|---|
+| **Connect-managed credentials** | Username and password managed in the Connect console. |
+| **SAML SSO** | Redirect to corporate identity provider (Okta, Azure AD, PingFederate, etc.). |
+| **Active Directory** | Credentials authenticated against a connected AD domain. |
+
+### First-Time Setup Requirements
+
+1. **Allow microphone access** -- browser permission required for softphone audio.
+2. **Allow popups** -- required for some authentication flows.
+3. **Enable third-party cookies** -- CCP requires third-party cookies to function. If cookies are blocked, the CCP will not load or will show authentication errors.
+4. **Supported browsers** -- latest versions of Chrome, Firefox, Edge. Safari has limited support.
+
+### Auto-Accept Configuration
+
+- Auto-accept can be enabled per channel in the routing profile.
+- When enabled, incoming contacts are automatically connected without the agent clicking Accept.
+- Voice auto-accept: the call connects immediately and the agent hears the customer (or whisper flow).
+- Chat/task auto-accept: the contact opens automatically in the workspace.
+- Auto-accept is configured by administrators in the routing profile settings.
+
+---
+
 ## Agent Status Management
 
 Agent status (availability state) controls whether contacts are routed to the agent and appears in real-time metrics.
@@ -38,9 +70,10 @@ Custom statuses appear in the agent status dropdown in the CCP. They are used fo
 When an agent sets a new status while handling a contact:
 
 1. The requested status is queued as the "next status."
-2. The agent continues handling the current contact.
+2. The agent continues handling the current contact normally.
 3. When all contacts are cleared, the agent transitions to the queued status automatically.
 4. If the agent selects a different status before clearing, the most recent selection wins.
+5. The next-status indicator is visible in the CCP so the agent knows what they will transition to.
 
 ---
 
@@ -48,9 +81,18 @@ When an agent sets a new status while handling a contact:
 
 ### Accepting Inbound Calls
 
-1. An incoming call notification appears in the CCP with the queue name and any available caller information.
+1. An incoming call notification appears in the CCP with the queue name and any available caller information (phone number, customer name from profile, contact attributes).
 2. Click **Accept** to connect. The call connects and the agent hears the customer (or whisper flow, if configured).
-3. If the agent does not accept within the configured timeout, the contact is missed and the agent enters Error state (configurable).
+3. If auto-accept is enabled, the call connects automatically without clicking Accept.
+4. If the agent does not accept within the configured timeout, the contact is missed and the agent enters Error state (configurable).
+
+### Caller Information Display
+
+When a call arrives, the CCP shows:
+- Queue name the contact is routed from.
+- Caller's phone number (if available).
+- Customer name (if Customer Profiles is enabled and a match is found).
+- Contact attributes set by the IVR flow (e.g., customer tier, reason for call).
 
 ### Making Outbound Calls
 
@@ -64,6 +106,14 @@ When an agent sets a new status while handling a contact:
 - **Hold** -- click the Hold button. The customer hears hold music (configured in the queue). The agent can perform other actions (look up information, consult with another party).
 - **Resume** -- click the Resume button to reconnect with the customer.
 - Hold time is tracked separately in metrics and CTRs.
+- Multiple holds are allowed per contact -- each hold period is recorded.
+
+### Mute
+
+- **Mute** -- click the Mute button. The agent's microphone is silenced; the customer cannot hear the agent.
+- **Unmute** -- click again to re-enable the microphone.
+- Mute does not affect the customer's audio -- the agent can still hear the customer.
+- Useful when the agent needs to cough, consult with a colleague off-mic, or check information.
 
 ### Transfer
 
@@ -72,7 +122,7 @@ Transfer sends the contact to another agent, queue, or external number:
 1. Click **Transfer** (or the quick connect icon).
 2. Select a quick connect destination (agent, queue, or phone number) or enter a phone number manually.
 3. Two transfer types:
-   - **Cold transfer (blind)** -- the contact transfers immediately. The originating agent disconnects.
+   - **Cold transfer (blind)** -- the contact transfers immediately. The originating agent disconnects and enters ACW.
    - **Warm transfer (consult)** -- the agent connects to the transfer target first, briefs them, then completes the transfer. The customer is on hold during the consult.
 
 ### Conference
@@ -81,14 +131,23 @@ Conference creates a three-way (or multi-party) call:
 
 1. While on a call, click **Add participant** or initiate a quick connect.
 2. The agent connects to the third party while the customer is on hold.
-3. Click **Join** or **Conference** to merge all parties.
-4. The agent can drop individual participants or leave the conference.
+3. Agent briefs the third party.
+4. Click **Join** or **Conference** to merge all parties.
+5. All parties can speak simultaneously.
+6. The agent can drop individual participants or leave the conference (customer and third party continue).
+
+### DTMF During Calls
+
+- During an active call, the number pad sends DTMF tones.
+- Used when navigating external IVR systems (e.g., transferring to an external queue that requires menu selections).
+- Each key press sends the corresponding DTMF tone in real time.
 
 ### Disconnect
 
 - Click **End call** to disconnect the customer.
 - The agent transitions to After Contact Work (ACW) state.
-- During ACW, the agent completes post-call activities (notes, disposition) before clicking **Clear contact**.
+- During ACW, the agent completes post-call activities (notes, disposition, guides) before clicking **Clear contact**.
+- ACW timeout is configurable per queue -- if the timeout expires, the contact auto-clears.
 
 ---
 
@@ -104,18 +163,28 @@ Each active chat appears as a tab or conversation in the CCP. The agent switches
 
 1. An incoming chat notification appears with the queue name and, if available, customer information.
 2. Click **Accept**. The chat window opens with any existing conversation history (if persistent chat is enabled).
+3. If auto-accept is enabled, the chat opens automatically.
 
 ### Sending Messages
 
 - Type in the message input field and press Enter or click Send.
 - Messages support plain text. Rich formatting depends on the chat widget configuration.
 - Attachments can be sent if file sharing is enabled (images, PDFs, up to configured size limits).
+- Message delivery status is indicated (sent, delivered).
 
 ### Quick Responses in Chat
 
 - Click the quick responses icon or type a shortcut prefix.
-- Search for a response by keyword.
+- Search for a response by keyword or category.
 - Click to insert the response into the message field. Edit if needed before sending.
+- Quick responses can include placeholder tokens (e.g., `{customer_name}`) that auto-fill from contact attributes.
+
+### Message Formatting
+
+- Plain text by default.
+- Rich text (bold, italic, links) depends on chat widget configuration.
+- Interactive messages (list pickers, time pickers) can be sent via contact flows.
+- Markdown support varies by chat client implementation.
 
 ### Ending Chats
 
@@ -131,6 +200,7 @@ Each active chat appears as a tab or conversation in the CCP. The agent switches
 
 1. Inbound emails arrive in the agent's inbox (visible in the CCP).
 2. Click **Accept** to open the email in the workspace.
+3. Emails queue in the inbox and wait for the agent to accept (no auto-ring like voice).
 
 ### Rich Text Editor
 
@@ -142,6 +212,7 @@ The email editor supports:
 - Inline images.
 - Font size and color adjustments.
 - Code blocks.
+- Text alignment.
 
 ### Templates
 
@@ -149,29 +220,34 @@ The email editor supports:
 - Agents select a template from the template picker.
 - Templates can include placeholder tokens that auto-fill from contact attributes or customer profile data.
 - Agents can edit the template content before sending.
+- Templates support rich text formatting.
 
 ### Signatures
 
 - Agents can configure a personal email signature in their settings.
 - Signatures are appended automatically to outbound emails.
 - Administrators can set a default organizational signature.
+- Signatures support rich text formatting (logo, links, formatting).
 
 ### Threading
 
 - Emails maintain thread context -- replies are grouped with the original email.
 - Agents see the full email thread history when handling a reply.
 - Thread IDs link related emails in the CTR and reporting.
+- Replies include the quoted original message.
 
 ### Forwarding
 
 - Agents can forward emails to external addresses or internal queues.
 - Forwarded emails include the original message content and any attachments.
+- Forwarding creates a new contact record linked to the original.
 
 ### Attachments
 
 - Agents can attach files to outbound emails.
 - Attachment size limits are configured per instance.
 - Supported file types are configurable by administrators.
+- Inbound email attachments are viewable/downloadable by the agent.
 
 ---
 
@@ -190,13 +266,23 @@ The email editor supports:
 3. Fill in required fields (name, description, assignee/queue).
 4. Optionally link the task to the current contact.
 5. Optionally schedule the task for a future date/time.
-6. Click **Create**.
+6. Add references (URLs, attachment links, contact IDs) for context.
+7. Click **Create**.
+
+### Task References
+
+Tasks can include references that provide context:
+- URLs to external systems or knowledge articles.
+- Contact IDs linking to previous interactions.
+- Attachment references.
+- Custom reference fields defined in task templates.
 
 ### Pause and Resume
 
-- **Pause** -- click Pause on an active task. Select a pause reason. The task stops counting against the agent's concurrency, allowing them to handle other contacts.
+- **Pause** -- click Pause on an active task. Select a pause reason from the configured list. The task stops counting against the agent's concurrency, allowing them to handle other contacts.
 - **Resume** -- click Resume to reactivate the task. It counts against concurrency again.
 - Paused tasks have a configurable expiry -- if not resumed within the expiry window, they can be auto-routed back to the queue.
+- Multiple pause/resume cycles are supported per task.
 
 ### Completing Tasks
 
@@ -255,10 +341,20 @@ Agents set their phone type in the CCP settings (gear icon). Changes take effect
 
 When using softphone:
 
-- Select the microphone input device.
+- Select the microphone input device from available system devices.
 - Select the speaker/headset output device.
 - Adjust ringer volume and ringer device (can ring on speakers while audio goes to headset).
 - Test audio devices using the built-in audio check.
+- Changes take effect immediately for the next contact.
+
+### Forward Calls to Mobile
+
+- Set agent phone type to "Desk phone."
+- Enter mobile number in E.164 format (e.g., +14155551234).
+- Incoming calls ring the mobile device.
+- **Limitations:** No softphone UI features (hold/mute buttons use physical phone controls); use DTMF or physical phone for these functions.
+- **Use case:** Remote agents without reliable internet for softphone.
+- Agent still uses CCP for status management, transfers, and contact controls.
 
 ---
 
@@ -284,16 +380,18 @@ The number pad in the CCP serves two purposes:
 - Used to enter phone numbers for outbound calls.
 - Supports copy-paste from clipboard.
 - Validates number format based on outbound calling configuration.
+- Country code selection for international dialing.
 
 ### DTMF (Dual-Tone Multi-Frequency)
 
 - During an active call, the number pad sends DTMF tones.
 - Used when navigating external IVR systems (e.g., transferring to an external queue that requires menu selections).
 - Each key press sends the corresponding DTMF tone in real time.
+- Tones: 0-9, *, #.
 
 ---
 
-## Inbox for Inbound Contacts
+## Inbox and Contact Priority
 
 The inbox is the contact queue visible in the CCP where inbound contacts arrive:
 
@@ -308,25 +406,25 @@ The inbox is the contact queue visible in the CCP where inbound contacts arrive:
 
 Contacts are presented based on:
 
-1. Priority setting (configurable in contact flows).
-2. Age in queue (longest-waiting first within the same priority).
-3. Channel routing order (configurable in routing profile).
+1. **Priority setting** (configurable in contact flows via Set contact attributes).
+2. **Age in queue** (longest-waiting first within the same priority).
+3. **Channel routing order** (configurable in routing profile -- e.g., voice before chat).
 
-### Launch and Login
-- **CCP URL**: `https://{instance-alias}.my.connect.aws/ccp-v2/`
-- **Login options**: Connect-managed credentials, SAML SSO redirect, AD credentials
-- **First-time setup**: Allow microphone access, allow popups, enable third-party cookies
-- **Cookie requirements**: Third-party cookies must be enabled for CCP to function
+### Priority Configuration
 
-### Forward Calls to Mobile
-- Set agent phone type to "Desk phone"
-- Enter mobile number in E.164 format (e.g., +14155551234)
-- Incoming calls ring the mobile device
-- **Limitations**: No softphone UI features (hold/mute buttons); use DTMF or physical phone
-- **Use case**: Remote agents without reliable internet for softphone
+- Priority is set as a numeric value in the contact flow (lower number = higher priority).
+- VIP customers can be assigned higher priority via IVR logic.
+- Priority can be dynamically adjusted based on wait time (priority escalation).
 
-### View Agent Schedule
-- Schedule tab in agent workspace (requires WFM enabled)
-- Shows today's timeline: shifts, breaks, training, time off
-- Submit time-off requests directly from schedule view
-- Weekly view for upcoming schedule
+---
+
+## View Agent Schedule
+
+When WFM is enabled, agents see their schedule in the workspace:
+
+- **Schedule tab** -- accessible from the agent workspace navigation.
+- **Today's timeline** -- visual bar showing shifts, breaks, training, and time off.
+- **Weekly view** -- upcoming week's schedule at a glance.
+- **Submit time-off requests** -- directly from the schedule view.
+- **Next activity notifications** -- alerts for upcoming breaks or activities.
+- Schedule is read-only -- agents cannot modify their own schedule.

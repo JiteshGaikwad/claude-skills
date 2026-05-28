@@ -2,7 +2,7 @@
 
 [![skills.sh](https://skills.sh/b/JiteshGaikwad/claude-skills)](https://skills.sh/JiteshGaikwad/claude-skills)
 
-A comprehensive Claude Code skill covering the entire Amazon Connect contact center ecosystem — 68 reference files, 20,700+ lines of structured documentation.
+A comprehensive Claude Code skill covering the entire Amazon Connect contact center ecosystem — 68 reference files, 28,000+ lines of structured documentation.
 
 ## What's Covered
 

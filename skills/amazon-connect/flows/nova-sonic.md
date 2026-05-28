@@ -4,7 +4,7 @@
 
 Amazon Nova Sonic is a speech-to-speech foundation model that enables natural conversational voice AI in Amazon Connect contact flows. Unlike the traditional IVR pipeline (TTS prompt -> ASR -> NLU -> response TTS), Nova Sonic processes speech input directly and generates speech output, creating a more natural, low-latency conversational experience.
 
-Nova Sonic powers the **Connect assistant** block in the flow designer, enabling contacts to interact with an AI assistant that can understand speech, reason, and respond with natural-sounding speech in real time.
+Nova Sonic is configured as a speech model on a Conversational AI bot locale in Amazon Connect. Connect continues to manage orchestration, intents, and flows.
 
 ## How It Works
 
@@ -32,6 +32,74 @@ Customer speaks
 ```
 
 Nova Sonic handles speech understanding and generation in a single model, reducing latency and enabling more natural conversational patterns like interruptions, back-channeling, and overlapping speech.
+
+## Prerequisites
+
+- A Conversational AI bot exists in Amazon Connect.
+- The locale you want to use with Nova Sonic is already created.
+- You have permissions to edit the bot configuration and build the language.
+
+## Part 1: Configure Speech-to-Speech for a Bot Locale
+
+### Step 1: Open the Speech Model Configuration
+
+1. Sign in to the Amazon Connect admin website.
+2. Choose **Bots**, then select the **Configuration** tab.
+3. Select the locale you want to configure.
+4. In the Speech model section, choose **Edit**.
+
+### Step 2: Select Speech-to-Speech
+
+In the Speech model modal, open the Model type dropdown and choose **Speech-to-Speech**.
+
+### Step 3: Choose Amazon Nova Sonic
+
+After selecting Speech-to-Speech, open Voice provider and select **Amazon Nova Sonic**. Then choose **Confirm**.
+
+### Step 4: Review Speech Model Status
+
+The Speech model card now shows "Speech-to-Speech: Amazon Nova Sonic" and displays a warning to select a Nova Sonic-compatible voice in your Set voice block.
+
+### Step 5: Build and Activate the Locale
+
+If the locale shows **Unbuilt changes**, choose **Build language**. The new STT settings become active after a successful build.
+
+## Part 2: Configure a Nova Sonic Compatible Voice in a Flow
+
+After enabling Nova Sonic at the bot level, you must configure a matching Nova Sonic-compatible expressive voice in your flow using the Set voice block.
+
+### Supported Nova Sonic Voices (Launch Set)
+
+| Voice | Locale | Gender |
+|-------|--------|--------|
+| Matthew | en-US | Masculine |
+| Amy | en-GB | Feminine |
+| Olivia | en-AU | Feminine |
+| Lupe | es-US | Feminine |
+
+### Step 1: Add or Open a Set Voice Block
+
+1. Open the target flow in the Flow designer.
+2. Search for Set voice in the block library.
+3. Drag a Set voice block onto the canvas or open an existing one.
+
+### Step 2: Select Override and Generative Speaking Style
+
+In Other settings, choose **Override speaking style** and select **Generative** to enable Nova Sonic expressive output.
+
+### Step 3: Select a Nova Sonic Compatible Voice
+
+1. Set Voice provider to **Amazon**.
+2. Under Language, select the locale that corresponds to the voice you want.
+3. Under Voice, select one of the Nova Sonic-compatible voices.
+
+### Step 4: Review Selected Voice
+
+The Set voice block now shows the selected voice and style, such as "Voice: Matthew (Generative)".
+
+### Step 5: Save and Publish the Flow
+
+Choose **Save**, then **Publish** to activate the configuration.
 
 ## Configuration in Contact Flows
 
@@ -66,7 +134,7 @@ The **Connect assistant** block (in the Interact category) configures Nova Sonic
 The system prompt shapes the assistant's behavior:
 
 ```
-You are a helpful customer service assistant for Acme Corp.
+You are a helpful customer service assistant for [Company].
 
 Your responsibilities:
 - Answer billing questions using the knowledge base
@@ -103,7 +171,7 @@ Replace the traditional IVR menu entirely with a conversational assistant.
 
 ```
 Inbound call
-  -> Set voice (optional, Nova Sonic uses its own voice)
+  -> Set voice (Nova Sonic compatible voice, Generative style)
   -> Set contact attributes (customer context)
   -> Connect assistant
       -> [Complete]: Transfer to queue / Disconnect
@@ -131,6 +199,7 @@ Perform a data lookup before engaging Nova Sonic to give it context.
 Inbound call
   -> Invoke Lambda (customer lookup by ANI)
   -> Set contact attributes (customerName, accountId, tier)
+  -> Set voice (Nova Sonic compatible voice, Generative style)
   -> Connect assistant (session attributes include customer context)
       -> Assistant greets by name, has account context
 ```
@@ -173,8 +242,9 @@ Configure guardrails in Amazon Bedrock and reference the guardrail ID in the Con
 ## Audio and Voice
 
 - Nova Sonic generates its own speech output directly (not via Amazon Polly TTS).
-- The voice characteristics are part of the model's capabilities.
-- The `Set voice` block in the flow does not affect Nova Sonic's output voice.
+- Voice is selected via the `Set voice` block with **Generative** speaking style.
+- Only Nova Sonic-compatible voices are supported (Matthew, Amy, Olivia, Lupe at launch).
+- The `Set voice` block must be placed **before** the `Get customer input` block that triggers the Lex bot with Nova Sonic.
 - Nova Sonic supports natural conversational patterns:
   - **Barge-in**: The customer can interrupt the assistant mid-sentence.
   - **Back-channeling**: The assistant can acknowledge the customer while they speak.
@@ -196,7 +266,8 @@ Configure guardrails in Amazon Bedrock and reference the guardrail ID in the Con
 | Maximum tools per assistant | 10 |
 | Maximum knowledge bases per assistant | 5 |
 | Supported channels | Voice only |
-| Supported languages | English (US) at launch; check AWS docs for current language support |
+| Supported voices (launch) | Matthew (en-US), Amy (en-GB), Olivia (en-AU), Lupe (es-US) |
+| Supported languages | English (US, GB, AU), Spanish (US) at launch; check AWS docs for updates |
 
 ## Troubleshooting
 
@@ -208,3 +279,6 @@ Configure guardrails in Amazon Bedrock and reference the guardrail ID in the Con
 | Responses not grounded | No knowledge base attached | Attach a Bedrock Knowledge Base; enable grounding guardrails |
 | PII in responses | No guardrails configured | Apply Bedrock Guardrails with sensitive information filters |
 | Customer cannot interrupt | Barge-in not working | Verify the Connect assistant block configuration; check audio routing |
+| Voice not working | Incompatible voice selected | Ensure a Nova Sonic-compatible voice is selected in Set voice block with Generative speaking style |
+| Locale not building | Speech model not set | Set Model type to Speech-to-Speech, select Amazon Nova Sonic, then Build language |
+| No speech output | Set voice block missing | Add a Set voice block before the Get customer input block with a Nova Sonic-compatible voice |
