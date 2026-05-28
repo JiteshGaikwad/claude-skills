@@ -90,18 +90,21 @@ Runs when a contact is transferred to a different queue. Allows you to modify at
 
 Every Amazon Connect instance comes with default flows that cannot be deleted. They serve as fallbacks when no custom flow is assigned. You can modify default flows, but the recommended practice is to create custom flows and reference them explicitly rather than relying on defaults.
 
-| Default Flow | Purpose |
-|---|---|
-| Default agent hold | Plays to the agent while the customer is on hold |
-| Default agent transfer | Runs when a contact is transferred to another agent |
-| Default customer queue | Runs while the customer waits in queue |
-| Default customer whisper | Plays a beep to the customer before agent connection |
-| Default agent whisper | Plays a beep to the agent before customer connection |
-| Default customer hold | Plays to the customer while on hold |
-| Default outbound | Runs for outbound calls |
-| Default queue transfer | Runs when a contact is transferred to another queue |
+Every instance includes 9 default flows that serve as automatic fallbacks. See [default-flows.md](default-flows.md) for full detail on each flow including blocks, triggers, channel support, customization steps, and caveats.
 
-To view default flows: go to Routing > Flows in the admin console. They all start with "Default" in their name.
+| Default Flow | Type | Trigger |
+|---|---|---|
+| Default agent hold | Agent Hold | Agent placed on hold |
+| Default agent transfer | Transfer to Agent | Contact transferred to agent |
+| Default customer queue | Customer Queue | Customer waiting in queue |
+| Default customer whisper | Customer Whisper | Before agent connection (customer side) |
+| Default agent whisper | Agent Whisper | Before customer connection (agent side) |
+| Default customer hold | Customer Hold | Customer placed on hold |
+| Default outbound | Outbound Whisper | Outbound call before agent connection |
+| Default queue transfer | Transfer to Queue | Contact transferred between queues |
+| Default prompts from Lex | N/A | Lex bot fallback prompts |
+
+**Key caveat:** Default customer queue flow is **voice only** — fails for chat/task/email. Chat whispers require explicit Set whisper flow block.
 
 ## Sample Flows
 

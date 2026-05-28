@@ -56,6 +56,8 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [flows/media-streaming.md](flows/media-streaming.md) — Kinesis Video Streams
 - [flows/nova-sonic.md](flows/nova-sonic.md) — Nova Sonic Speech-to-Speech
 - [flows/proficiency-routing.md](flows/proficiency-routing.md) — Proficiency-based routing, step waterfall, preferred agent, Lambda JSON
+- [flows/default-flows.md](flows/default-flows.md) — All 9 default flows with blocks, triggers, channel support
+- [flows/sample-flows.md](flows/sample-flows.md) — All 13 sample flows with step-by-step structure
 - [flows/flow-logging.md](flows/flow-logging.md) — CloudWatch Logs setup, log format, troubleshooting
 - [flows/encryption.md](flows/encryption.md) — Sensitive input encryption, key management, PCI compliance
 
