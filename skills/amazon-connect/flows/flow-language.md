@@ -2869,7 +2869,7 @@ Participant actions are attempted only when the flow runs in context of a partic
 | `LexSessionAttributes` | Object (Map) | Optional | Session attributes passed to Lex. Keys/values static or dynamic. |
 | `LexInitializationData` | Object | Optional | Initialization data to prime the bot. Only supported for Chat channel (not Voice). |
 | `LexInitializationData.InitialMessage` | String | Optional | Initial message parsed to Lex. Always serialized to `$.Media.InitialMessage` (resolves to customer's initial chat message). |
-| `LexTimeoutSeconds` | Object | Optional | Lex timer configuration |
+| `LexTimeoutSeconds` | Object | Optional | Lex timer configuration that times out inactive customers in a Lex interaction. Chat channel only. When omitted, no flow-level timeout is enforced — the Lex bot's own session timeout governs inactivity. |
 | `LexTimeoutSeconds.Text` | Number | Optional | Timer length for chat channel in seconds |
 
 **Note:** If the initial message attribute is not included as part of the contact, the Get customer input block takes the error branch. Use Check contact attributes block prior to verify the initial message is available for different messaging types (web chat, SMS, Apple Messages for Business).
