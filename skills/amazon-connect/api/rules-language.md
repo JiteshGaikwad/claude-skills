@@ -16,6 +16,15 @@ RuleFunction (JSON string)
 
 Every rule function is a single JSON object with a top-level `AND` or `OR` operator containing an array of operand conditions.
 
+### Limits
+
+- A rule function **must start with an `AND` or `OR`** operator.
+- Conditions may be **nested no more than 5 levels deep**.
+- A single condition may contain **no more than 50 sub-conditions**, regardless of nesting depth.
+- An operator's `Operands` list supports **up to 10 operands** (operator-dependent — some operators take exactly one operand).
+- An optional **`Negate`** boolean on any condition inverts its result.
+- Rule name pattern: `^[a-zA-Z0-9._-]{1,200}$`. `PublishStatus`: `DRAFT` or `PUBLISHED`. Up to 50 tags.
+
 ## Operators
 
 | Operator | Description | Leaf/Branch |
@@ -29,22 +38,29 @@ Every rule function is a single JSON object with a top-level `AND` or `OR` opera
 
 ## Trigger Event Sources
 
-Rules are triggered by one of 12 event sources:
+Rules are triggered by one of 17 event sources (complete `EventSourceName` enum, verbatim from the `CreateRule` API):
 
 | Event Source | Description |
 |---|---|
 | `OnPostCallAnalysisAvailable` | Contact Lens post-call analysis is complete |
-| `OnRealTimeCallAnalysisAvailable` | Contact Lens real-time analysis segment available |
+| `OnRealTimeCallAnalysisAvailable` | Contact Lens real-time voice analysis segment available |
+| `OnRealTimeChatAnalysisAvailable` | Contact Lens real-time chat analysis segment available |
 | `OnPostChatAnalysisAvailable` | Contact Lens post-chat analysis is complete |
 | `OnEmailAnalysisAvailable` | Contact Lens email analysis is complete |
 | `OnMetricDataUpdate` | A metric threshold is breached |
 | `OnContactEvaluationSubmit` | An evaluation form is submitted |
 | `OnCaseCreate` | A case is created |
 | `OnCaseUpdate` | A case field is updated |
-| `OnSlaBreach` | An SLA is breached |
+| `OnSlaBreach` | A case SLA is breached |
 | `OnZendeskTicketCreate` | A Zendesk ticket is created (via integration) |
 | `OnZendeskTicketStatusUpdate` | A Zendesk ticket status changes |
 | `OnSalesforceCaseCreate` | A Salesforce case is created (via integration) |
+| `OnAlertUpdate` | An alert is updated |
+| `OnSchedulePublish` | A forecasting/scheduling schedule is published |
+| `OnScheduleUpdate` | A schedule is updated |
+| `OnScheduleTimeOffRequestActivity` | A time-off request activity occurs |
+
+> Note: `OnZendeskTicketUpdate`, `OnSalesforceCaseUpdate`, and `OnPostEmailAnalysisAvailable` are NOT valid names — the correct names are `OnZendeskTicketStatusUpdate` and `OnEmailAnalysisAvailable`.
 
 ## ComparisonValue Paths
 
@@ -356,18 +372,94 @@ await client.send(new CreateRuleCommand({
 }));
 ```
 
-## Rule Action Types
+## Rule Actions (`Actions`)
 
-Rules can trigger these action types:
+Actions are NOT part of the function language — they are the separate `Actions` array of `CreateRule`/`UpdateRule`. The function defines *when* the rule fires; the actions define *what runs*.
 
-| Action Type | Description |
+### Complete `ActionType` enum
+
+`CREATE_TASK`, `ASSIGN_CONTACT_CATEGORY`, `GENERATE_EVENTBRIDGE_EVENT`, `SEND_NOTIFICATION`, `CREATE_CASE`, `UPDATE_CASE`, `ASSIGN_SLA`, `END_ASSOCIATED_TASKS`, `SUBMIT_AUTO_EVALUATION`
+
+### Per-action parameters
+
+| Action Type | Struct | Parameters |
+|---|---|---|
+| `ASSIGN_CONTACT_CATEGORY` | `AssignContactCategoryAction` | `{}` — no params; tags the contact with the rule's category |
+| `CREATE_TASK` | `TaskAction` | `Name`, `Description`, `ContactFlowId`, `References{<key>:{Value, Type, Status, Arn, StatusReason}}` |
+| `GENERATE_EVENTBRIDGE_EVENT` | `EventBridgeAction` | `Name` |
+| `SEND_NOTIFICATION` | `SendNotificationAction` | `DeliveryMethod`(=`EMAIL`), `Subject`, `Content`, `ContentType`(=`PLAIN_TEXT`), `Recipient{UserTags, UserIds[]}`, `Exclusion{UserTags, UserIds[]}` |
+| `CREATE_CASE` | `CreateCaseAction` | `Fields[]{Id, Value{BooleanValue\|DoubleValue\|EmptyValue\|StringValue}}`, `TemplateId` |
+| `UPDATE_CASE` | `UpdateCaseAction` | `Fields[]{Id, Value{...}}` |
+| `ASSIGN_SLA` | `AssignSlaAction` | `SlaAssignmentType`(=`CASES`), `CaseSlaConfiguration{Name, Type(=CaseField), FieldId, TargetFieldValues[]{Bool\|Double\|Empty\|String}, TargetSlaMinutes(long)}` |
+| `END_ASSOCIATED_TASKS` | `EndAssociatedTasksAction` | `{}` — no params |
+| `SUBMIT_AUTO_EVALUATION` | `SubmitAutoEvaluationAction` | `EvaluationFormId` |
+
+`TaskAction.References` `Type` ∈ `URL`, `ATTACHMENT`, `CONTACT_ANALYSIS`, `NUMBER`, `STRING`, `DATE`, `EMAIL`, `EMAIL_MESSAGE`, `EMAIL_MESSAGE_PLAIN_TEXT`, `EMAIL_MESSAGE_PLAIN_TEXT_REDACTED`, `EMAIL_MESSAGE_REDACTED`. `Status` ∈ `AVAILABLE`, `DELETED`, `APPROVED`, `REJECTED`, `PROCESSING`, `FAILED`.
+
+### Action support by event source
+
+Not every action is valid for every event source:
+
+| Action | Supported event sources |
 |---|---|
-| `ASSIGN_CONTACT_CATEGORY` | Assign a category label to the contact |
-| `CREATE_TASK` | Create a follow-up task contact |
-| `CREATE_CASE` | Create a case in Amazon Connect Cases |
-| `UPDATE_CASE` | Update fields on an existing case |
-| `SEND_NOTIFICATION` | Send email/push notification |
-| `GENERATE_EVENT_BRIDGE_EVENT` | Emit an EventBridge event |
-| `END_ASSOCIATED_TASKS` | End tasks associated with the contact |
-| `SUBMIT_AUTO_EVALUATION` | Auto-submit an evaluation form |
-| `ASSIGN_SLA` | Assigns an SLA definition to a case. Parameters: `SlaId`. |
+| `CREATE_TASK` | `OnZendeskTicketCreate`, `OnZendeskTicketStatusUpdate`, `OnSalesforceCaseCreate` |
+| `GENERATE_EVENTBRIDGE_EVENT` | `OnPostCallAnalysisAvailable`, `OnRealTimeCallAnalysisAvailable`, `OnRealTimeChatAnalysisAvailable`, `OnPostChatAnalysisAvailable`, `OnContactEvaluationSubmit`, `OnMetricDataUpdate` |
+| `ASSIGN_CONTACT_CATEGORY` | `OnPostCallAnalysisAvailable`, `OnRealTimeCallAnalysisAvailable`, `OnRealTimeChatAnalysisAvailable`, `OnPostChatAnalysisAvailable`, `OnZendeskTicketCreate`, `OnZendeskTicketStatusUpdate`, `OnSalesforceCaseCreate` |
+| `SEND_NOTIFICATION` | `OnPostCallAnalysisAvailable`, `OnRealTimeCallAnalysisAvailable`, `OnRealTimeChatAnalysisAvailable`, `OnPostChatAnalysisAvailable`, `OnContactEvaluationSubmit`, `OnMetricDataUpdate` |
+| `CREATE_CASE` | `OnPostCallAnalysisAvailable`, `OnPostChatAnalysisAvailable` |
+| `UPDATE_CASE` | `OnCaseCreate`, `OnCaseUpdate` |
+| `END_ASSOCIATED_TASKS` | `OnCaseUpdate` |
+| `ASSIGN_SLA` | `OnCaseCreate`, `OnCaseUpdate` |
+
+### Full `Actions` JSON skeleton
+
+```json
+[
+  {
+    "ActionType": "CREATE_TASK|ASSIGN_CONTACT_CATEGORY|GENERATE_EVENTBRIDGE_EVENT|SEND_NOTIFICATION|CREATE_CASE|UPDATE_CASE|ASSIGN_SLA|END_ASSOCIATED_TASKS|SUBMIT_AUTO_EVALUATION",
+    "TaskAction": {
+      "Name": "string",
+      "Description": "string",
+      "ContactFlowId": "string",
+      "References": { "<key>": { "Value": "string", "Type": "URL", "Status": "AVAILABLE", "Arn": "string", "StatusReason": "string" } }
+    },
+    "EventBridgeAction": { "Name": "string" },
+    "AssignContactCategoryAction": {},
+    "SendNotificationAction": {
+      "DeliveryMethod": "EMAIL",
+      "Subject": "string",
+      "Content": "string",
+      "ContentType": "PLAIN_TEXT",
+      "Recipient": { "UserTags": { "string": "string" }, "UserIds": ["string"] },
+      "Exclusion": { "UserTags": { "string": "string" }, "UserIds": ["string"] }
+    },
+    "CreateCaseAction": {
+      "Fields": [ { "Id": "string", "Value": { "BooleanValue": true, "DoubleValue": 0.0, "EmptyValue": {}, "StringValue": "string" } } ],
+      "TemplateId": "string"
+    },
+    "UpdateCaseAction": {
+      "Fields": [ { "Id": "string", "Value": { "StringValue": "string" } } ]
+    },
+    "AssignSlaAction": {
+      "SlaAssignmentType": "CASES",
+      "CaseSlaConfiguration": {
+        "Name": "string",
+        "Type": "CaseField",
+        "FieldId": "string",
+        "TargetFieldValues": [ { "StringValue": "string" } ],
+        "TargetSlaMinutes": 0
+      }
+    },
+    "EndAssociatedTasksAction": {},
+    "SubmitAutoEvaluationAction": { "EvaluationFormId": "string" }
+  }
+]
+```
+
+### CloudFormation form (`AWS::Connect::Rule`)
+
+In CloudFormation, `Actions` uses **arrays per action type** (not a single `ActionType` discriminator): `AssignContactCategoryActions`, `CreateCaseActions`, `EndAssociatedTasksActions`, `EventBridgeActions`, `SendNotificationActions`, `TaskActions`, `UpdateCaseActions`. Required properties: `Actions`, `Function` (the conditions string), `InstanceArn`, `Name`, `PublishStatus`, `TriggerEventSource`. Returns `RuleArn` via `Fn::GetAtt`.
+
+### Getting the exact `Function` for any event source
+
+The per-source condition pages render client-side only, so the most reliable way to see the exact operators and `ComparisonValue` paths for a given event source is to build the rule in the Amazon Connect console, then call `DescribeRule` (or `aws connect describe-rule`) and read back the returned `Function` string. Use `aws connect create-rule --generate-cli-skeleton input` for the full `Actions` skeleton.
