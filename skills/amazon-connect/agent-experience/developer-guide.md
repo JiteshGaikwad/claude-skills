@@ -8,7 +8,7 @@ This guide covers the three integration approaches for extending the Amazon Conn
 
 The Amazon Connect agent workspace is a browser-based application that provides agents with a unified interface for handling customer interactions. It embeds the Contact Control Panel (CCP), step-by-step guides, Customer Profiles, Cases, and AI-powered agent assist tools into a single workspace shell.
 
-Applications load inside iframes within the workspace shell. The workspace manages authentication, theming, and event routing between all embedded applications.
+Applications load inside iframes within the workspace shell. The workspace handles theming and event/request routing between all embedded applications. Apps must provide their own authentication (see Authentication below) — the workspace session is not shared with embedded apps.
 
 There are three types of integrations:
 
@@ -59,13 +59,14 @@ In the AWS console, register your application under the Amazon Connect admin con
 ### Installation
 
 ```bash
-npm install @amazon-connect/contact @amazon-connect/core
+npm install @amazon-connect/app @amazon-connect/contact @amazon-connect/core
 ```
+
+The `@amazon-connect/app` package provides app initialization and lifecycle for third-party applications and must be installed by every app at a minimum. `AgentClient` and `ContactClient` both come from `@amazon-connect/contact`.
 
 Additional SDK packages by feature:
 
 ```bash
-npm install @amazon-connect/agent        # Agent state, routing profile
 npm install @amazon-connect/voice        # Voice call controls
 npm install @amazon-connect/email        # Email handling
 npm install @amazon-connect/file         # File upload/download
@@ -77,83 +78,89 @@ npm install @amazon-connect/app-controller    # App lifecycle management
 ### Initialization
 
 ```typescript
-import { AmazonConnectApp } from "@amazon-connect/core";
+import { AmazonConnectApp } from "@amazon-connect/app";
 
-const app = await AmazonConnectApp.init({
-  instanceUrl: "https://my-instance.my.connect.aws",
-  // Optional: specify container element for embedded mode
+const { provider } = AmazonConnectApp.init({
+  onCreate: (event) => {
+    const { appInstanceId } = event.context;
+    console.log("App initialized:", appInstanceId);
+  },
+  onDestroy: (event) => {
+    console.log("App being destroyed");
+  },
 });
 
-// The app is now connected to the workspace
-// All SDK clients use this app instance
+// Keep the { provider } reference -- it is required to create clients
+// that interact with workspace events and requests.
 ```
 
-The `init()` call establishes a secure communication channel between the iframe and the parent workspace window via `postMessage`. It performs:
+`init()` is called on the `AmazonConnectApp` module and takes `onCreate` and `onDestroy` lifecycle callbacks. The call is synchronous (it is **not** awaited) and returns an object containing the `provider`. The callbacks fire as follows:
 
-1. Origin validation against the registered allowed origins.
-2. Authentication handshake (the workspace passes auth context to the app).
-3. Theme synchronization (the app receives the current workspace theme).
-4. Event channel setup for bidirectional communication.
+1. `onCreate` is invoked once the app has successfully initialized in the agent workspace. Its event context provides the `appInstanceId` (and `appConfig`, plus the current `contactId` when the app is opened during an active contact).
+2. `onDestroy` is invoked when the agent workspace is about to destroy the iframe the app is running in -- use it to clean up resources and persist data.
 
-### Authentication Support
+If you load the app directly outside the workspace, the SDK logs that it was unable to connect to the workspace within the allotted time; this is expected when `init` runs outside the workspace.
 
-The workspace provides authentication context to 3P apps:
+### Authentication
 
-```typescript
-import { AmazonConnectApp } from "@amazon-connect/core";
+Apps in the Connect Customer agent workspace **must** provide their own authentication to their users. The workspace session is **not** shared with your app, so do not rely on it for sign-in.
 
-const app = await AmazonConnectApp.init({ instanceUrl });
+It is recommended that apps use the same identity provider (IdP) that the Connect Customer instance was configured to use when it was created. This way users only need to log in once for both the agent workspace and your application, since both use the same single sign-on provider.
 
-// Access authenticated user info
-const user = app.getUser();
-console.log(user.getLanguage()); // Agent's language preference
-```
+#### Third-party cookie deprecation (3PCD)
 
-Apps do not need to implement their own login flow when running inside the workspace -- the workspace session is shared. For apps that also run standalone (outside the workspace), implement a fallback auth flow.
+Apps run inside an iframe, so the Google Chrome Third-Party Cookies Deprecation (3PCD) can affect apps that use cookie-based authentication/authorization. If your app is embedded in the workspace and uses cookies for auth, it is likely to be impacted. Recommendations:
+
+- **Temporary solution:** allow third-party cookie access for the workspace domain.
+- **Permanent solution:** follow the guidance from Chrome to choose the best option for your application.
+
+Note: on July 22, 2024, Google announced it no longer plans to deprecate third-party cookies. There is no impact to embedded apps unless users explicitly opt in to deprecation, but apps should still adopt the prevention solutions above as a forward-looking measure.
 
 ### Theme Integration
 
-Apps receive the workspace theme and can adapt their UI:
+The theme package applies the standard Connect Customer theme on top of Cloudscape, so your app matches the look and feel of the agent workspace. Import it once at the application entry point and pass it the `provider` returned by `init()`:
 
 ```typescript
-import { AmazonConnectApp } from "@amazon-connect/core";
+import { applyConnectTheme } from "@amazon-connect/theme";
 
-const app = await AmazonConnectApp.init({ instanceUrl });
-
-// Get current theme
-const theme = app.getTheme();
-// theme.primaryColor, theme.backgroundColor, etc.
-
-// Listen for theme changes (e.g., user switches dark mode)
-app.onThemeChanged((newTheme) => {
-  applyTheme(newTheme);
-});
+// `provider` is the value returned by AmazonConnectApp.init()
+await applyConnectTheme(provider);
 ```
+
+From then on, Cloudscape components and design tokens can be used directly. Install with `npm install -P @amazon-connect/theme @cloudscape-design/global-styles`.
 
 ### Lifecycle Events
 
+An app hooks into lifecycle events through the `onCreate` and `onDestroy` callbacks passed to `AmazonConnectApp.init()`:
+
 ```typescript
-// App is being closed/hidden
-app.onDestroy(() => {
-  // Cleanup resources, save state
-});
+import { AmazonConnectApp } from "@amazon-connect/app";
 
-// App gained focus
-app.onFocus(() => {
-  // Refresh data, update UI
-});
-
-// App lost focus
-app.onBlur(() => {
-  // Pause animations, reduce polling
+const { provider } = AmazonConnectApp.init({
+  // Create: fired once the app has initialized in the workspace.
+  // The event context provides appInstanceId, appConfig, and the
+  // contactId when the app is opened during an active contact.
+  onCreate: (event) => {
+    const { appInstanceId } = event.context;
+  },
+  // Destroy: fired when the workspace is about to remove the app's
+  // iframe. Use it to clean up resources and persist data; the
+  // workspace waits for the app to report cleanup is complete.
+  onDestroy: (event) => {
+    // cleanup
+  },
 });
 ```
+
+To signal an unrecoverable state, call `sendError` or `sendFatalError` on the `AmazonConnectApp` object. A fatal error causes the workspace to immediately remove the iframe without running the destroy handshake, so perform any required cleanup before sending it.
 
 ### Error Handling
 
 ```typescript
+import { AmazonConnectApp } from "@amazon-connect/app";
+
 try {
-  const app = await AmazonConnectApp.init({ instanceUrl });
+  const { provider } = AmazonConnectApp.init({ onCreate: () => {}, onDestroy: () => {} });
 } catch (error) {
   if (error.code === "ORIGIN_NOT_ALLOWED") {
     console.error("App origin not registered in Connect console");
@@ -179,7 +186,7 @@ When npm is not available (e.g., legacy apps, static sites), you can bundle the 
    ```
 3. Install SDK packages:
    ```bash
-   npm install @amazon-connect/contact @amazon-connect/agent @amazon-connect/core @amazon-connect/app-controller
+   npm install @amazon-connect/app @amazon-connect/contact @amazon-connect/core @amazon-connect/app-controller
    ```
 4. Install a bundler:
    ```bash
@@ -187,9 +194,8 @@ When npm is not available (e.g., legacy apps, static sites), you can bundle the 
    ```
 5. Create an entry file (`index.js`):
    ```javascript
-   export { ContactClient } from "@amazon-connect/contact";
-   export { AgentClient } from "@amazon-connect/agent";
-   export { AmazonConnectApp } from "@amazon-connect/core";
+   export { ContactClient, AgentClient } from "@amazon-connect/contact";
+   export { AmazonConnectApp } from "@amazon-connect/app";
    export { AppControllerClient } from "@amazon-connect/app-controller";
    ```
 6. Add a build script to `package.json`:
@@ -215,7 +221,9 @@ Usage in HTML:
 </script>
 ```
 
-StreamsJS integration: Load Streams JS first (`connect-streams.js`), then the SDK bundle. Initialize CCP via `connect.core.initCCP()`, then create SDK clients.
+**StreamsJS / custom-CCP path only** (this is a *different* integration from bundling a 3P app into the workspace — do not use `initCCP` for 3P apps): Load Streams JS first (`connect-streams.js`), then the SDK bundle. Initialize CCP via `connect.core.initCCP(container, { plugins: AmazonConnectSDK.AppManagerPlugin })`. Then, **after** `connect.core.onInitialized()` fires, retrieve the provider via `connect.core.getSDKClientConfig().provider` and create SDK clients with `new ContactClient(provider)`. The `AppManagerPlugin` is only needed if you also host Connect first-party apps (Cases, Step-by-Step Guides).
+
+For 3P apps (not StreamsJS), do not call `connect.core.initCCP()`; initialize with `AmazonConnectApp.init()` and use the returned `{ provider }` as shown in the Initialization section above.
 
 ### Agent Data Integration
 
@@ -248,7 +256,11 @@ await contactClient.accept(contactId);
 **Events not received:**
 - Verify the app origin is registered in the Connect console (exact match, including protocol and port).
 - Check browser console for `postMessage` origin errors.
-- Ensure `AmazonConnectApp.init()` completed successfully before subscribing to events.
+- Ensure `AmazonConnectApp.init()` was called and its returned `{ provider }` was captured before subscribing to events.
+
+**Provider is undefined:**
+- For 3P apps: ensure `AmazonConnectApp.init()` was called and its return value (the `{ provider }`) was captured.
+- For StreamsJS / custom CCP: access the provider only **after** `connect.core.onInitialized()` fires, via `connect.core.getSDKClientConfig().provider`.
 
 **Requests failing:**
 - Confirm the agent's security profile grants permissions for the requested resource.
@@ -285,18 +297,24 @@ Third-party services are background processes that run for the duration of the a
 2. Create a new application with the "Service" type (not "Application").
 3. Provide the HTTPS URL of the service endpoint.
 4. The service URL is loaded in a hidden iframe -- no UI is rendered.
-5. The service initializes via the same `AmazonConnectApp.init()` flow and subscribes to events.
+5. The service initializes via `AmazonConnectService.init()` (from `@amazon-connect/app`) and subscribes to events. It must complete the initial handshake within its configured `InitializationTimeout` (in milliseconds), or the agent workspace will fail to load. All initialization must complete within the overall 30-second window.
 
 ### Example: Auto-Launch App on ACW
 
 ```typescript
-import { AmazonConnectApp } from "@amazon-connect/core";
+import { AmazonConnectService } from "@amazon-connect/app";
 import { ContactClient } from "@amazon-connect/contact";
 import { AppControllerClient } from "@amazon-connect/app-controller";
 
-const app = await AmazonConnectApp.init({ instanceUrl });
-const contactClient = new ContactClient(app);
-const appController = new AppControllerClient(app);
+const { provider } = AmazonConnectService.init({
+  onCreate: (event) => {
+    const { instanceId } = event.context;
+    console.log("Service creation complete:", instanceId);
+  },
+});
+
+const contactClient = new ContactClient({ provider });
+const appController = new AppControllerClient({ provider });
 
 // Listen for ACW state
 contactClient.onStartingAcw((event) => {
@@ -318,13 +336,13 @@ contactClient.onStartingAcw((event) => {
 ### Example: Contact Event Listener with App Launch
 
 ```typescript
-import { AmazonConnectApp } from "@amazon-connect/core";
+import { AmazonConnectService } from "@amazon-connect/app";
 import { ContactClient } from "@amazon-connect/contact";
 import { AppControllerClient } from "@amazon-connect/app-controller";
 
-const app = await AmazonConnectApp.init({ instanceUrl });
-const contactClient = new ContactClient(app);
-const appController = new AppControllerClient(app);
+const { provider } = AmazonConnectService.init({ onCreate: () => {} });
+const contactClient = new ContactClient({ provider });
+const appController = new AppControllerClient({ provider });
 
 contactClient.onIncoming(async (contact) => {
   const attrs = await contactClient.getAttributes(contact.contactId);
@@ -337,11 +355,11 @@ contactClient.onIncoming(async (contact) => {
 ### Example: Authentication Popup Pattern
 
 ```typescript
-import { AmazonConnectApp } from "@amazon-connect/core";
+import { AmazonConnectService } from "@amazon-connect/app";
 import { AppControllerClient } from "@amazon-connect/app-controller";
 
-const app = await AmazonConnectApp.init({ instanceUrl });
-const appController = new AppControllerClient(app);
+const { provider } = AmazonConnectService.init({ onCreate: () => {} });
+const appController = new AppControllerClient({ provider });
 
 // Service that handles OAuth popup for an external CRM
 await appController.launch({
@@ -599,7 +617,7 @@ Manages agent session activity and keep-alive.
 ```typescript
 import { ActivityClient } from "@amazon-connect/core";
 
-const activityClient = new ActivityClient(app);
+const activityClient = new ActivityClient({ provider });
 
 activityClient.onSessionExpiryWarning((event) => {
   console.log(`Session expires in ${event.timeRemaining}ms`);
@@ -612,7 +630,7 @@ activityClient.onSessionExpiryWarning((event) => {
 
 ### Agent Client
 
-**Package:** `@amazon-connect/agent`
+**Package:** `@amazon-connect/contact`
 
 Manages agent state, routing profile, and channel configuration.
 
@@ -637,9 +655,9 @@ Manages agent state, routing profile, and channel configuration.
 | `offEnabledChannelListChanged(callback)` | `(cb) => void` | Unsubscribes from channel list change events. |
 
 ```typescript
-import { AgentClient } from "@amazon-connect/agent";
+import { AgentClient } from "@amazon-connect/contact";
 
-const agentClient = new AgentClient(app);
+const agentClient = new AgentClient({ provider });
 
 const state = await agentClient.getState();
 console.log(`Agent is: ${state.name}`);
@@ -673,7 +691,7 @@ Controls third-party application lifecycle within the workspace.
 ```typescript
 import { AppControllerClient } from "@amazon-connect/app-controller";
 
-const appController = new AppControllerClient(app);
+const appController = new AppControllerClient({ provider });
 
 // Get available apps
 const catalog = await appController.getCatalog();
@@ -738,7 +756,7 @@ Core contact handling -- accept, transfer, disconnect, and events for all channe
 ```typescript
 import { ContactClient } from "@amazon-connect/contact";
 
-const contactClient = new ContactClient(app);
+const contactClient = new ContactClient({ provider });
 
 // Listen for incoming contacts
 contactClient.onIncoming((event) => {
@@ -788,7 +806,7 @@ Handles email-specific operations (drafts, metadata, threading).
 ```typescript
 import { EmailClient } from "@amazon-connect/email";
 
-const emailClient = new EmailClient(app);
+const emailClient = new EmailClient({ provider });
 
 // Get email thread
 const thread = await emailClient.getTree(contactId);
@@ -823,7 +841,7 @@ Manages file uploads and downloads for attachments across channels.
 ```typescript
 import { FileClient } from "@amazon-connect/file";
 
-const fileClient = new FileClient(app);
+const fileClient = new FileClient({ provider });
 
 // Upload a file
 const upload = await fileClient.startUpload({
@@ -864,7 +882,7 @@ Manages message templates for email and chat responses.
 ```typescript
 import { MessageTemplateClient } from "@amazon-connect/message-template";
 
-const templateClient = new MessageTemplateClient(app);
+const templateClient = new MessageTemplateClient({ provider });
 
 // Check if templates are enabled
 const enabled = await templateClient.isEnabled();
@@ -896,7 +914,7 @@ Manages quick responses (canned messages with shortcuts).
 ```typescript
 import { QuickResponsesClient } from "@amazon-connect/quick-responses";
 
-const qrClient = new QuickResponsesClient(app);
+const qrClient = new QuickResponsesClient({ provider });
 
 // Search for quick responses
 const results = await qrClient.search({ query: "greeting" });
@@ -970,7 +988,7 @@ Controls voice-specific operations (hold, resume, conference, outbound, DTMF, vo
 ```typescript
 import { VoiceClient } from "@amazon-connect/voice";
 
-const voiceClient = new VoiceClient(app);
+const voiceClient = new VoiceClient({ provider });
 
 // Hold and resume
 await voiceClient.hold(contactId);
