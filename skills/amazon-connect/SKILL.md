@@ -46,6 +46,11 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [core/routing-and-queues.md](core/routing-and-queues.md) — Queue types, routing profiles, priority/delay, quick connects, transfers
 - [core/user-management.md](core/user-management.md) — Security profiles, hierarchy groups, bulk ops, agent status
 - [core/identity-management.md](core/identity-management.md) — SAML 2.0, AD, Connect-managed, approved origins/CORS
+- [core/customer-authentication.md](core/customer-authentication.md) — Customer auth (Cognito/JWT), communications widget auth
+- [core/service-linked-roles.md](core/service-linked-roles.md) — All Connect SLRs (core, campaigns, sync), KMS edge cases
+- [core/regions-and-feature-availability.md](core/regions-and-feature-availability.md) — Region availability, feature-by-region matrix, endpoints
+- [core/language-support-matrix.md](core/language-support-matrix.md) — Languages supported per feature (TTS, ASR, Contact Lens, UI)
+- [core/accessibility-and-browser-support.md](core/accessibility-and-browser-support.md) — Accessibility (ACR/screen readers), browser support, policy breakage fixes
 
 ### Contact Flows
 - [flows/overview.md](flows/overview.md) — Flow designer, types, modules, prompts
@@ -77,6 +82,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [ai/outbound-campaigns.md](ai/outbound-campaigns.md) — Predictive dialer, campaigns v1+v2
 - [ai/generative-ai.md](ai/generative-ai.md) — Post-contact summaries, gen-AI evaluations
 - [ai/prompt-engineering.md](ai/prompt-engineering.md) — AI agent prompt best practices, troubleshooting, monitoring
+- [ai/chat-message-streaming.md](ai/chat-message-streaming.md) — AI-powered chat message streaming, MESSAGE_STREAMING attribute, progressive responses
 
 ### Analytics & Metrics
 - [analytics/contact-lens.md](analytics/contact-lens.md) — Sentiment, transcription, categories

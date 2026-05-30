@@ -168,6 +168,17 @@ const client = new ConnectClient({ region: 'us-east-1' });
 - `DeleteIntegrationAssociation` — remove integration
 - `ListIntegrationAssociations` — list integrations
 
+### Instance Resource Associations
+Associate/disassociate resources with an instance; most have a matching `List*`.
+- `AssociateApprovedOrigin` / `DisassociateApprovedOrigin` / `ListApprovedOrigins` — allowlist origins for embedded CCP / custom apps
+- `AssociateLambdaFunction` / `DisassociateLambdaFunction` / `ListLambdaFunctions` — grant the instance permission to invoke a Lambda from flows
+- `AssociateBot` / `DisassociateBot` / `ListBots` — associate a Lex V1/V2 bot (filter `ListBots` by `LexVersion`)
+- `AssociateLexBot` / `DisassociateLexBot` — Lex V1 bot association (legacy; prefer `AssociateBot` with `LexV2Bot`)
+- `AssociateSecurityKey` / `DisassociateSecurityKey` / `ListSecurityKeys` — instance security (public) key for encrypted customer input
+- `AssociatePhoneNumberContactFlow` / `DisassociatePhoneNumberContactFlow` — bind/unbind a flow to a claimed phone number
+- `AssociateAnalyticsDataSet` / `DisassociateAnalyticsDataSet` / `ListAnalyticsDataAssociations` — analytics data lake dataset associations
+- `BatchAssociateAnalyticsDataSet` / `BatchDisassociateAnalyticsDataSet` — bulk analytics dataset associations
+
 ### Metrics
 
 - `GetMetricDataV2` — get historical metrics with advanced filters (10 TPS)
