@@ -65,6 +65,7 @@ Enable/disable features per instance via `UpdateInstanceAttribute`:
 - **Multi-party chat**: If chat barge was enabled before Dec 2024, toggle off then on to enable multi-party chats
 - **Contact Lens**: Configured separately under Analytics tools in console
 - **Flow logs**: Sends flow execution events to CloudWatch; enable under Flows settings
+- **Outbound allowlisting**: Default outbound calling countries vary by instance Region; see `core/outbound-calling-default-countries.md`.
 
 ## Storage Configuration
 

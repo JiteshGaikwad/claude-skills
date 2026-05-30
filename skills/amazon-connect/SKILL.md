@@ -51,6 +51,8 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [core/regions-and-feature-availability.md](core/regions-and-feature-availability.md) — Region availability, feature-by-region matrix, endpoints
 - [core/language-support-matrix.md](core/language-support-matrix.md) — Languages supported per feature (TTS, ASR, Contact Lens, UI)
 - [core/accessibility-and-browser-support.md](core/accessibility-and-browser-support.md) — Accessibility (ACR/screen readers), browser support, policy breakage fixes
+- [core/how-contacts-are-counted.md](core/how-contacts-are-counted.md) — Concurrency quota counting rules
+- [core/quotas-planning.md](core/quotas-planning.md) — Launch sizing, alarms, emergency operations
 
 ### Contact Flows
 - [flows/overview.md](flows/overview.md) — Flow designer, types, modules, prompts
@@ -74,6 +76,8 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [channels/email.md](channels/email.md) — SES integration, threading, templates
 - [channels/tasks.md](channels/tasks.md) — Task management, templates, automation
 - [channels/web-video.md](channels/web-video.md) — WebRTC, in-app calling, video
+- [channels/in-app-web-and-video-calling-capabilities.md](channels/in-app-web-and-video-calling-capabilities.md) — Widget vs native integration overview
+- [channels/webrtc-chime-sdk-implementation.md](channels/webrtc-chime-sdk-implementation.md) — Chime SDK client patterns, DTMF, multi-user
 
 ### AI & Automation
 - [ai/connect-ai-agents.md](ai/connect-ai-agents.md) — Agentic self-service, agent-assist, prompts, guardrails, MCP tools
@@ -83,6 +87,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [ai/generative-ai.md](ai/generative-ai.md) — Post-contact summaries, gen-AI evaluations
 - [ai/prompt-engineering.md](ai/prompt-engineering.md) — AI agent prompt best practices, troubleshooting, monitoring
 - [ai/chat-message-streaming.md](ai/chat-message-streaming.md) — AI-powered chat message streaming, MESSAGE_STREAMING attribute, progressive responses
+- [ai/bedrock-model-selection-cross-region-inference.md](ai/bedrock-model-selection-cross-region-inference.md) — Model selection + cross-region inference mapping
 
 ### Analytics & Metrics
 - [analytics/contact-lens.md](analytics/contact-lens.md) — Sentiment, transcription, categories
@@ -91,6 +96,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [analytics/dashboards-reports.md](analytics/dashboards-reports.md) — Dashboards, custom metrics
 - [analytics/data-lake.md](analytics/data-lake.md) — Athena/QuickSight, zero-ETL
 - [analytics/contact-records.md](analytics/contact-records.md) — CTR data model, contact states
+- [analytics/contact-dispositions.md](analytics/contact-dispositions.md) — Disposition tracking recommendations (outbound)
 - [analytics/evaluations.md](analytics/evaluations.md) — Eval forms, screen recording, coaching
 - [analytics/monitoring.md](analytics/monitoring.md) — CloudWatch (25 metrics), CloudTrail
 - [analytics/contact-search.md](analytics/contact-search.md) — Search, in-progress management
@@ -128,6 +134,11 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 
 ### API Reference
 - [api/overview.md](api/overview.md) — Architecture, best practices, common errors
+- [api/connect-customer-developer-guide.md](api/connect-customer-developer-guide.md) — Guide intro, how to use this repo
+- [api/connect-customer-api-best-practices.md](api/connect-customer-api-best-practices.md) — Throttling/2 TPS, errors, quotas, eventual consistency
+- [api/attachments.md](api/attachments.md) — Attachments narrative (Participant vs Attached Files)
+- [api/putdialrequestbatch-best-practices.md](api/putdialrequestbatch-best-practices.md) — Outbound dial batching best practices
+- [api/throttling-quotas.md](api/throttling-quotas.md) — Admin Guide throttling quota tables (by service)
 - [api/connect-service-api.md](api/connect-service-api.md) — 200+ actions, 530 data types
 - [api/contact-lens-api.md](api/contact-lens-api.md) — 2 actions, 8 data types
 - [api/customer-profiles-api.md](api/customer-profiles-api.md) — 80+ actions, 130+ data types
@@ -142,6 +153,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 
 ### Release Notes
 - [recent-changes.md](recent-changes.md) — Latest features (2026)
+- [doc-history.md](doc-history.md) — Document history mapping (AWS PDF doc history pointers)
 
 ## Examples
 

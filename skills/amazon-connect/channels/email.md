@@ -2,6 +2,8 @@
 
 Amazon Connect's email channel lets agents send and receive emails through the same CCP used for voice and chat. Built on Amazon SES for delivery, with full threading, templates, attachments, and Contact Lens analytics.
 
+For hard limits (“feature specifications”), see `core/feature-specifications.md`.
+
 ## Setup and Configuration
 
 Email in Connect requires Amazon SES integration for sending and receiving.
@@ -155,6 +157,23 @@ Email supports file attachments for both inbound and outbound messages.
   }
 ]
 ```
+
+## Email Feature Specifications (Hard Limits)
+
+| Item | Specification |
+|------|---------------|
+| Maximum email body size | 5 MB |
+| Email body formats | HTML (`text/html`) default; plain text (`text/plain`) also stored |
+| Maximum email body + attachments size | 25 MB |
+| Attachments per email message | 10 |
+| Inline images total size limit | 5 MB |
+| Active email contact expiry | 14 days default; adjustable up to 90 days via `connect:ContactExpiry` |
+| Email addresses per email message | 50 total across To and CC |
+| Outbound recipients | 1 in To; up to 49 in CC |
+| BCC | Not supported |
+| Maximum subject length | 998 characters |
+| Maximum email address length | 255 |
+| Maximum display name length | 256 |
 
 ## Contact Lens for Email
 

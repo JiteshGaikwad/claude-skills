@@ -112,6 +112,7 @@ ClaimPhoneNumber             — claim from available pool
 - Configure outbound caller ID per queue via `UpdateQueueOutboundCallerConfig`
 - E.164 format required for all outbound numbers
 - Caller ID must be a number claimed or ported to your instance
+- Default outbound calling destinations vary by instance Region; see `core/outbound-calling-default-countries.md`.
 
 ### Early Media
 - Agents hear pre-connection audio: busy signals, failure-to-connect errors, informational messages from telephony providers

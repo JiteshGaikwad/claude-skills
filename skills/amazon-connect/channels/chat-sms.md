@@ -2,6 +2,8 @@
 
 Amazon Connect supports real-time chat, SMS, and third-party messaging integrations. Agents handle chat contacts through the same CCP used for voice, with unified routing and reporting.
 
+For hard limits (“feature specifications”), see `core/feature-specifications.md`.
+
 ## Web Chat — Communications Widget
 
 Connect provides a hosted, embeddable chat widget for websites and web applications. Up to 20 widgets can be created per instance.
@@ -86,6 +88,7 @@ Enable agents and customers to share files during chat, email, and tasks.
 - Default maximum: **20 MB** per attachment
 - Configurable up to **100 MB** via admin website or API
 - Maximum **35 attachments** per chat conversation
+- Attachment scanning timeout: **60 seconds**
 - S3 buckets with Object Lock are not supported
 
 **Storage architecture:**
@@ -112,6 +115,51 @@ Agents can handle multiple chat conversations simultaneously.
 - Typical configuration: 2–5 simultaneous chats
 - Chat does not block voice — agents can take a call while handling chats (if routing profile allows cross-channel concurrency)
 - Each chat appears as a separate tab/contact in the CCP
+
+## Chat Feature Specifications (Hard Limits)
+
+These are documented feature specifications and are **not adjustable**.
+
+| Item | Specification |
+|------|---------------|
+| Attachments per chat conversation | 35 |
+| Active chats per agent | 10 |
+| Participants in a conference chat | 6 |
+| Custom participants per contact | 1 |
+| Open websocket connections per chat participant | 5 |
+| Lex bot integration timeout | 10 seconds |
+| Default chat duration | 25 hours |
+| Configurable chat duration range | 1 hour to 7 days via `StartChatContact` `ChatDurationInMinutes` |
+| Persistent chat past transcript file size | 5 MB |
+| Persistent chat past contacts traversed | 100 |
+| Monitoring (simultaneous monitors per agent chat) | 5 |
+| Barge-in supervisors (when enabled) | 1 |
+
+## Message Size Limits by Channel
+
+| Channel | Direction | Initiator → Receiver | Limit |
+|---------|-----------|----------------------|-------|
+| SMS | Inbound | End customer → Agent or Lex (Connect) | 1,024 characters |
+| SMS | Outbound | Agent or Lex (Connect) → End customer | 1,024 characters |
+| SMS | Inbound | End customer → Lex (Connect) | 1,024 characters |
+| WhatsApp | Inbound | End customer → Agent | 4,096 characters |
+| WhatsApp | Outbound | Agent or Lex (Connect) → End customer | 4,096 characters |
+| WhatsApp | Inbound | End customer → Lex (Connect) | 1,024 characters |
+| Apple Messages for Business | Inbound | End customer → Agent | 4,096 characters |
+| Apple Messages for Business | Outbound | Agent or Lex (Connect) → End customer | 4,096 characters |
+| Apple Messages for Business | Inbound | End customer → Lex (Connect) | 1,024 characters |
+| Chat (web chat) | Inbound | End customer → Agent | 16,384 bytes |
+| Chat (web chat) | Outbound | Agent or Lex (Connect) → End customer | 16,384 bytes |
+
+## WhatsApp Attachments (Supported Types and Sizes)
+
+| Media type | Supported file types | Maximum file size |
+|------------|----------------------|-------------------|
+| Image | `.jpeg`, `.jpg`, `.jfif`, `.png` | 5 MB |
+| Video | `.mp4`, `.3gp` | 16 MB |
+| Document | `.txt`, `.pdf`, `.ppt`, `.pptx`, `.doc`, `.docx`, `.xls`, `.xlsx` | 20 MB |
+| Audio | `.aac`, `.m4a`, `.mp3`, `.amr`, `.ogg` | 16 MB |
+| Sticker | Not supported | Not supported |
 
 ## Rich Messaging — Interactive Messages
 

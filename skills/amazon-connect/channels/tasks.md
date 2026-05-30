@@ -2,6 +2,8 @@
 
 Amazon Connect Tasks let you create, prioritize, assign, and track work items alongside voice, chat, and email contacts. Tasks route through the same queues and routing profiles, giving agents a unified workspace for all work.
 
+For hard limits (“feature specifications”), see `core/feature-specifications.md`.
+
 Currently approved for GDPR, SOC, PCI, HITRUST, ISO, and HIPAA compliance.
 
 ## Overview
