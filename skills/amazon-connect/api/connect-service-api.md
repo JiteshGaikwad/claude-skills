@@ -17,6 +17,7 @@ const client = new ConnectClient({ region: 'us-east-1' });
 - `DeleteAnalyticsDataAssociation` — remove data lake association
 - `ListAnalyticsDataAssociations` — list all data lake associations
 - `BatchGetFlowAssociation` — get flow associations in batch
+- `ListAnalyticsDataLakeDataSets` — list available data lake datasets
 
 ### Agent Status
 
@@ -35,11 +36,17 @@ const client = new ConnectClient({ region: 'us-east-1' });
 ### Contacts
 
 - `DescribeContact` — get contact details (duration, attributes, agent, queue)
+- `AssociateContactWithUser` — associate a contact with an agent/user (workspace/contact context)
 - `UpdateContact` — update contact attributes/description
 - `UpdateContactAttributes` — update key-value attributes on active contact
+- `UpdateContactRoutingData` — update routing data for an active contact
+- `UpdateContactSchedule` — update a scheduled contact
+- `UpdateParticipantAuthentication` — update participant authentication for a contact
 - `ListContactReferences` — list references attached to contact
 - `SearchContacts` — search contacts by time range, channels, attributes (10 TPS)
+- `ListAssociatedContacts` — list contacts associated to a contact (related contacts)
 - `GetContactAttributes` — get all attributes on a contact
+- `GetContactMetrics` — get aggregated metrics for a contact
 - `StartContactRecording` — start recording an active voice contact
 - `StopContactRecording` — stop recording
 - `SuspendContactRecording` — pause recording
@@ -48,10 +55,15 @@ const client = new ConnectClient({ region: 'us-east-1' });
 - `PauseContact` — pause an active contact (hold)
 - `ResumeContact` — resume a paused contact
 - `StopContact` — disconnect a contact
+- `DismissUserContact` — dismiss a user contact (workspace UX)
 - `TransferContact` — transfer to queue or agent
 - `CreateContact` — create an outbound or task contact programmatically
 - `BatchPutContact` — create multiple contacts in batch
 - `StartContactStreaming` — start real-time contact streaming to Kinesis
+- `StopContactStreaming` — stop real-time contact streaming
+- `StartContactMediaProcessing` — start media processing for a contact
+- `StopContactMediaProcessing` — stop media processing
+- `StartScreenSharing` — start screen sharing for a contact
 
 ### Data Tables
 
@@ -66,11 +78,25 @@ const client = new ConnectClient({ region: 'us-east-1' });
 - `DeleteDataTableRow` — delete a row
 - `ListDataTableRows` — list/search rows with filters
 
+- `SearchDataTables` — search data tables with filters
+
+Data-table attribute/value APIs (used by the console for schema + value exploration):
+
+- `DescribeDataTableAttribute` — describe a data table attribute
+- `DeleteDataTableAttribute` — delete a data table attribute
+- `ListDataTableAttributes` — list attributes for a data table
+- `ListDataTablePrimaryValues` — list primary-key values
+- `ListDataTableValues` — list values for a given attribute
+- `BatchDescribeDataTableValue` — describe values in batch
+- `UpdateDataTableMetadata` — update data table metadata
+- `UpdateDataTablePrimaryValues` — update primary values
+
 ### Email
 
 - `StartEmailContact` — initiate an inbound email contact
 - `SendOutboundEmail` — send an outbound email from a Connect instance
 - `CreateEmailAddress` — create a managed email address
+- `AssociateEmailAddressAlias` / `DisassociateEmailAddressAlias` — manage aliases for a managed email address
 - `UpdateEmailAddressMetadata` — update display name/description
 - `DeleteEmailAddress` — delete a managed email address
 - `DescribeEmailAddress` — get email address details
@@ -85,6 +111,7 @@ const client = new ConnectClient({ region: 'us-east-1' });
 - `DescribeEvaluationForm` — get form details
 - `ListEvaluationForms` — list all forms
 - `ListEvaluationFormVersions` — list versions of a form
+- `SearchEvaluationForms` — search evaluation forms
 - `ActivateEvaluationForm` — activate a form version
 - `DeactivateEvaluationForm` — deactivate a form
 - `StartContactEvaluation` — start evaluating a contact
@@ -114,6 +141,7 @@ const client = new ConnectClient({ region: 'us-east-1' });
 - `SearchContactFlows` — search flows with filters
 - `CreateContactFlowVersion` — publish a flow version
 - `ListContactFlowVersions` — list versions
+- `DeleteContactFlowVersion` — delete a specific flow version
 - `CreateContactFlowModule` — create a reusable flow module
 - `UpdateContactFlowModuleContent` — update module definition
 - `UpdateContactFlowModuleMetadata` — update module metadata
@@ -121,6 +149,21 @@ const client = new ConnectClient({ region: 'us-east-1' });
 - `DescribeContactFlowModule` — get module details
 - `ListContactFlowModules` — list all modules
 - `SearchContactFlowModules` — search modules with filters
+
+Flow-module alias/version management:
+
+- `CreateContactFlowModuleAlias` — create an alias for a flow module
+- `DescribeContactFlowModuleAlias` — describe alias details
+- `ListContactFlowModuleAliases` — list module aliases
+- `UpdateContactFlowModuleAlias` — update alias
+- `DeleteContactFlowModuleAlias` — delete alias
+- `CreateContactFlowModuleVersion` — publish a module version
+- `ListContactFlowModuleVersions` — list module versions
+- `DeleteContactFlowModuleVersion` — delete a module version
+
+Flow associations:
+
+- `AssociateFlow` / `DisassociateFlow` — associate/disassociate flows (for supported flow-association types)
 
 ### Hierarchy Groups
 
@@ -139,13 +182,19 @@ const client = new ConnectClient({ region: 'us-east-1' });
 - `UpdateHoursOfOperation` — update schedule
 - `DeleteHoursOfOperation` — delete schedule
 - `DescribeHoursOfOperation` — get schedule details
-- `ListHoursOfOperation` — list all schedules
-- `SearchHoursOfOperation` — search schedules
+- `ListHoursOfOperations` — list all schedules
+- `ListChildHoursOfOperations` — list child schedules
+- `SearchHoursOfOperations` — search schedules
 - `CreateHoursOfOperationOverride` — create holiday/exception override
 - `UpdateHoursOfOperationOverride` — update override
 - `DeleteHoursOfOperationOverride` — delete override
-- `GetHoursOfOperationOverride` — get override details
+- `DescribeHoursOfOperationOverride` — get override details
 - `ListHoursOfOperationOverrides` — list overrides
+- `SearchHoursOfOperationOverrides` — search overrides
+
+Associations:
+
+- `AssociateHoursOfOperations` / `DisassociateHoursOfOperations` — associate/disassociate hours of operation
 
 ### Instances
 
@@ -174,6 +223,7 @@ Associate/disassociate resources with an instance; most have a matching `List*`.
 - `AssociateLambdaFunction` / `DisassociateLambdaFunction` / `ListLambdaFunctions` — grant the instance permission to invoke a Lambda from flows
 - `AssociateBot` / `DisassociateBot` / `ListBots` — associate a Lex V1/V2 bot (filter `ListBots` by `LexVersion`)
 - `AssociateLexBot` / `DisassociateLexBot` — Lex V1 bot association (legacy; prefer `AssociateBot` with `LexV2Bot`)
+- `ListLexBots` — list Lex bots (legacy)
 - `AssociateSecurityKey` / `DisassociateSecurityKey` / `ListSecurityKeys` — instance security (public) key for encrypted customer input
 - `AssociatePhoneNumberContactFlow` / `DisassociatePhoneNumberContactFlow` — bind/unbind a flow to a claimed phone number
 - `AssociateAnalyticsDataSet` / `DisassociateAnalyticsDataSet` / `ListAnalyticsDataAssociations` — analytics data lake dataset associations
@@ -223,6 +273,7 @@ Associate/disassociate resources with an instance; most have a matching `List*`.
 - `UpdatePrompt` — update prompt audio/metadata
 - `DeletePrompt` — delete a prompt
 - `DescribePrompt` — get prompt details
+- `GetPromptFile` — get prompt audio file (download)
 - `ListPrompts` — list all prompts
 - `SearchPrompts` — search prompts
 
@@ -238,6 +289,10 @@ Associate/disassociate resources with an instance; most have a matching `List*`.
 - `DeleteQueue` — delete a queue
 - `DescribeQueue` — get queue details
 - `ListQueues` — list all queues
+- `ListQueueEmailAddresses` — list email addresses associated with a queue
+- `AssociateQueueEmailAddresses` / `DisassociateQueueEmailAddresses` — manage queue email associations
+- `ListQueueQuickConnects` — list quick connects associated with a queue
+- `DisassociateQueueQuickConnects` — remove quick connects from a queue
 - `SearchQueues` — search queues with filters
 
 ### Quick Connects
@@ -291,6 +346,7 @@ Associate/disassociate resources with an instance; most have a matching `List*`.
 - `TagResource` — add tags to any Connect resource
 - `UntagResource` — remove tags
 - `ListTagsForResource` — list tags on a resource
+- `SearchResourceTags` — search tags by resource criteria
 - `TagContact` — add tags to a contact
 - `UntagContact` — remove tags from contact
 - `ListContactTags` — list tags on a contact
@@ -346,6 +402,7 @@ Associate/disassociate resources with an instance; most have a matching `List*`.
 - `ListViews` — list all views
 - `CreateViewVersion` — publish a view version
 - `ListViewVersions` — list view versions
+- `DeleteViewVersion` — delete a view version
 - `SearchViews` — search views
 
 ### Vocabulary
@@ -357,6 +414,7 @@ Associate/disassociate resources with an instance; most have a matching `List*`.
 - `ListDefaultVocabularies` — list default vocabularies
 - `AssociateDefaultVocabulary` — set default vocabulary for language
 - `DisassociateDefaultVocabulary` — remove default
+- `SearchVocabularies` — search vocabularies
 
 ### Voice
 
@@ -368,9 +426,29 @@ Associate/disassociate resources with an instance; most have a matching `List*`.
 
 - `CreateWorkspace` — create agent workspace
 - `UpdateWorkspace` — update workspace config
+- `UpdateWorkspaceMetadata` — update workspace name/description
+- `UpdateWorkspaceVisibility` — show/hide workspace
 - `DeleteWorkspace` — delete workspace
 - `DescribeWorkspace` — get workspace details
 - `ListWorkspaces` — list workspaces
+
+- `SearchWorkspaces` — search workspaces
+- `SearchWorkspaceAssociations` — search workspace associations
+- `AssociateWorkspace` / `DisassociateWorkspace` — associate/disassociate workspace
+
+Workspace pages and media:
+
+- `CreateWorkspacePage` — create a workspace page
+- `UpdateWorkspacePage` — update a workspace page
+- `DeleteWorkspacePage` — delete a workspace page
+- `ListWorkspacePages` — list workspace pages
+- `ImportWorkspaceMedia` — import workspace media
+- `DeleteWorkspaceMedia` — delete workspace media
+- `ListWorkspaceMedia` — list workspace media
+
+### Test Cases
+
+- `ListTestCases` — list test cases (flow testing)
 
 ## Key Data Types
 

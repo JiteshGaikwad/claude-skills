@@ -96,6 +96,7 @@ Fields define the schema for cases. Field options define picklist values for sin
 
 - `CreateField` — create a custom field
 - `UpdateField` — update field name/description
+- `DeleteField` — delete a custom field
 - `GetField` — get field details
 - `ListFields` — list all fields in domain
 - `BatchGetField` — get multiple fields by ID
@@ -215,6 +216,9 @@ Related items link contacts, comments, and files to cases.
 
 - `CreateRelatedItem` — add a comment, contact reference, or file to a case
 - `SearchRelatedItems` — search related items on a case
+- `SearchAllRelatedItems` — search related items across cases
+- `UpdateRelatedItem` — update a related item
+- `DeleteRelatedItem` — delete a related item
 
 ```typescript
 import { CreateRelatedItemCommand } from '@aws-sdk/client-connectcases';

@@ -18,15 +18,40 @@ There are three types of integrations:
 
 Agent workspace URL: `https://{instance-alias}.my.connect.aws/agent-app-v2/`
 
+### How apps load (important mental model)
+
+Apps load in iframes. Design for these behaviors:
+
+- **Per-contact apps**: the workspace can create a separate iframe instance per contact, so multiple instances of the same app may run at once (for different contacts).
+- **Hidden vs destroyed**: switching contacts/tabs can hide an app without destroying it. Destroy happens when the workspace removes the iframe (for example when the tab is closed, or a per-contact app instance is torn down).
+- **Contact isolation**: events/data are scoped to the contact context for that iframe instance; do not assume state is shared across contacts.
+- **CSP composition**: the workspace’s iframe allowlist is derived from your integration configuration (Access URL + Approved origins). If your app does login redirects or embeds additional domains, those domains must be included as approved origins or they may be blocked.
+
+See `agent-experience/app-loading-model.md` for patterns and pitfalls.
+
 ---
 
 ## Best Practices
 
-- **Embedding security**: Use `X-Frame-Options` and CSP headers to ensure your app can only be embedded in the Connect workspace. Restrict `frame-ancestors` to the Connect domain.
-- **Multiple domains**: Register all domains (including staging and localhost for development) as approved origins via the `AssociateApprovedOrigin` API.
-- **Streams initialization**: Initialize the Streams JS library before creating SDK clients. Do not call `initCCP` multiple times — it should be called once on page load.
-- **Accessibility**: Follow WCAG 2.1 AA guidelines. Use semantic HTML elements, ARIA labels, and ensure full keyboard navigation support.
-- **Theming**: Always use `app.getTheme()` to match the workspace theme. Subscribe to `onThemeChanged` for dynamic updates when agents toggle dark mode.
+- **Embedding security**: Use a CSP `frame-ancestors` allowlist so your app can only be embedded by Amazon Connect. The Agent Workspace Developer Guide examples allow both `https://*.awsapps.com` and your instance domain family (for example `https://*.my.connect.aws`).
+- **Multiple domains**: If your app uses additional domains (login redirects, CDNs, staging, localhost), register them as **Approved origins** so the workspace allows them in iframes.
+- **Streams vs 3P apps**: Do **not** initialize the CCP (Streams `initCCP`) inside a third-party app. Use Streams only for a custom CCP page you host; use `AmazonConnectApp.init()` for third-party applications and services.
+- **Accessibility**: Follow WCAG 2.1 AA guidelines and test with automated tools plus real assistive tech (keyboard-only navigation and screen readers).
+- **Theming**: If you use Cloudscape, apply the Connect theme (`@amazon-connect/theme`) using the SDK `provider`. Otherwise, use the SDK theme APIs (for example `getTheme()` / `onThemeChanged`) to react to dark-mode changes.
+
+Example CSP header (copy/paste baseline):
+
+```
+Content-Security-Policy: frame-ancestors https://*.awsapps.com https://*.my.connect.aws;
+```
+
+Detailed checklists:
+- `agent-experience/app-loading-model.md`
+- `agent-experience/embedding-security-and-csp.md`
+- `agent-experience/permissions-and-appconfig.md`
+- `agent-experience/testing-local-and-deployed.md`
+- `agent-experience/streams-vs-3p-apps.md`
+- `agent-experience/appmanager-lifecycle.md`
 
 ---
 
@@ -45,7 +70,8 @@ In the AWS console, register your application under the Amazon Connect admin con
 
 ### Prerequisites
 
-- HTTPS-hosted web application (HTTP is rejected by the iframe sandbox).
+- For staging/production: HTTPS-hosted web application (required for normal workspace embedding).
+- For local testing: `http://localhost:{port}` is supported as an Access URL/approved origin for validating the integration.
 - Application registered in the Amazon Connect console under "Third-party applications."
 - `@amazon-connect/sdk` packages installed.
 
@@ -267,15 +293,25 @@ await contactClient.accept(contactId);
 - Check that the SDK package version matches the Connect instance version.
 - Look for CORS errors if the app makes direct API calls.
 
+**Permission errors (events/requests):**
+- Inspect `event.context.appConfig.permissions` in `onCreate` to confirm what the workspace granted.
+- Common error patterns to look for:
+  - “App attempted to subscribe to topic without permission …” (event subscription blocked)
+  - “App does not have permission for this request” (request blocked)
+- Fix path: update the integration permissions and ensure the agent’s security profile has **Agent applications → View** for the app, then reload the workspace tab.
+
 **Testing locally:**
-- Use `https://localhost:{port}` (not `http://`).
-- Register `https://localhost:{port}` as an allowed origin in the Connect console.
-- Use a valid SSL certificate (self-signed works with browser exceptions).
+- For local testing, set the integration **Access URL** to `http://localhost:{port}` (for example `http://localhost:3000`) as described in the Agent Workspace Developer Guide.
+- Add the same origin as an **Approved origin**.
+- Ensure the agent’s **Security Profile** grants the app “View” access under *Agent applications* so it appears in the app launcher.
+- Running the app outside the workspace should log that it failed to connect to the workspace — this is expected.
 
 **Testing deployed:**
 - Register the production domain as an allowed origin.
 - Verify the app loads in a standalone browser tab before testing inside the workspace.
 - Check the browser network tab for blocked requests or failed resource loads.
+
+For a full end-to-end checklist (console fields + security profile + expected error messages), see `agent-experience/testing-local-and-deployed.md`.
 
 ---
 
@@ -504,6 +540,23 @@ appManager.launchApp({
   containerId: "app-container",  // DOM element to render into
 });
 ```
+
+### AppHost lifecycle and visibility (important)
+
+When using AppManager, treat hosted apps as lifecycled iframe instances (similar to workspace apps):
+
+- **Lifecycle events**: handle `onCreated`, `onDestroying`, and `onDestroyed` for each AppHost.
+  - Practical rule: do not remove the iframe DOM node until `onDestroyed` fires.
+- **Visibility management**: if your UI hides/shows app containers, call:
+  - `appHost.stop()` when hidden
+  - `appHost.start()` when visible again
+- **Avoid duplicates**: if your page can launch the same app multiple times, use a stable `launchKey` strategy so you don’t accidentally create multiple instances for the same logical tab/contact.
+- **Dynamic app changes**: if you maintain a dynamic layout, wire management hooks such as:
+  - `onAppHostAdded` / `onAppHostRemoved`
+  - `onAppHostFocused`
+- **Catalog expectations**: the app catalog is filtered by what the current agent is allowed to see (security-profile gated).
+
+See `agent-experience/appmanager-lifecycle.md` for notes and patterns.
 
 ### React Example with Dynamic App Management
 

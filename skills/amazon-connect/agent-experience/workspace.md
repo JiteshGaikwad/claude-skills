@@ -68,9 +68,14 @@ Applications are registered in the Amazon Connect console under **Integrations**
 | **Approved origins** | Additional allowlisted URLs beyond the access URL. |
 
 **Iframe Requirements:**
-- The app's Content-Security-Policy `frame-ancestors` directive must be set to `https://{your-instance}.my.connect.aws`.
+- The app must allow being embedded by the agent workspace via CSP `frame-ancestors`.
+- Recommended allowlist pattern (per the Agent Workspace Developer Guide): allow the Amazon Connect workspace domains, for example:
+  - `https://*.awsapps.com`
+  - `https://*.my.connect.aws`
 - If the directive is `same-origin` or `deny`, the URL cannot be iframed.
 - Use the app developer recommendations to ensure apps can only be embedded in the Connect workspace.
+
+**Important:** the agent workspace iframe allowlist is composed from your integration configuration (**Access URL + Approved origins**). If your app performs login redirects or embeds additional domains, those domains must be included as approved origins or they may be blocked.
 
 ### Events and Requests Permissions
 
@@ -187,9 +192,9 @@ The Customer Profile tab displays a unified customer view assembled from multipl
 
 ---
 
-## 8. Voice ID (Excluded -- End of Life)
+## 8. (Reserved)
 
-Amazon Connect Voice ID reached end of life and is excluded from new implementations. Previously provided real-time caller authentication via voiceprint and fraud detection.
+Voice ID content is intentionally excluded from this skill.
 
 ---
 

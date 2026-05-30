@@ -139,7 +139,7 @@ From the admin workspace:
 
 ### Integration with Flows
 
-Data tables are accessed in flows via the "Invoke data table" block. For detailed flow integration patterns, see [`flows/data-tables.md`](../data/data-tables.md).
+Data tables are accessed in flows via the "Invoke data table" block. For detailed flow integration patterns, see [`data/data-tables.md`](../data/data-tables.md).
 
 ### Access Control
 

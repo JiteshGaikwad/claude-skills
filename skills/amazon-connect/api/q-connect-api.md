@@ -107,6 +107,7 @@ Assistants are the top-level container for Q Connect resources.
 - `GetAssistantAssociation` — get association details
 - `DeleteAssistantAssociation` — remove association
 - `ListAssistantAssociations` — list associations
+- `UpdateAssistantAIAgent` / `RemoveAssistantAIAgent` — manage AI agent attachment to an assistant
 
 ```typescript
 import { CreateAssistantCommand } from '@aws-sdk/client-qconnect';
@@ -128,6 +129,7 @@ Knowledge bases store content that AI agents reference for recommendations.
 - `DeleteKnowledgeBase` — delete knowledge base
 - `ListKnowledgeBases` — list all knowledge bases
 - `GetKnowledgeBaseTemplateUri` — get template URI for object mappings
+- `RemoveKnowledgeBaseTemplateUri` — remove a template URI mapping
 
 ```typescript
 import { CreateKnowledgeBaseCommand } from '@aws-sdk/client-qconnect';
@@ -159,6 +161,7 @@ Content items are individual articles/documents in a knowledge base.
 - `GetContentAssociation` — get association details
 - `DeleteContentAssociation` — remove association
 - `ListContentAssociations` — list content associations
+- `GetContentSummary` — get a summary for a content item
 
 ### Sessions
 
@@ -228,6 +231,7 @@ Reusable message templates for agent responses.
 - `CreateMessageTemplate` — create a template
 - `GetMessageTemplate` — get template details
 - `UpdateMessageTemplate` — update template content
+- `UpdateMessageTemplateMetadata` — update template metadata
 - `DeleteMessageTemplate` — delete a template
 - `SearchMessageTemplates` — search templates
 - `ListMessageTemplates` — list all templates
@@ -287,6 +291,7 @@ Bulk import content or quick responses.
 - `GetImportJob` — get import job status
 - `ListImportJobs` — list import jobs
 - `StartImportJob` — start processing an import
+- `DeleteImportJob` — delete an import job
 
 ### Recommendations
 
@@ -296,6 +301,8 @@ Real-time AI recommendations during contacts.
 - `NotifyRecommendationsReceived` — acknowledge receipt of recommendations
 - `QueryAssistant` — query the assistant for answers (legacy)
 - `RetrieveContent` — retrieve relevant content from knowledge bases
+- `ListModels` — list available models
+- `ListSpans` — list spans for a message/content
 - `PutFeedback` — submit agent feedback on a recommendation (helpful/not helpful)
 
 ```typescript

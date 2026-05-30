@@ -86,6 +86,16 @@ Object types define the schema for data objects linked to profiles.
 - `GetProfileObjectTypeTemplate` — get a pre-built template (Salesforce, Marketo, etc.)
 - `ListProfileObjectTypeTemplates` — list available templates
 
+Domain object-type management:
+
+- `GetDomainObjectType` — get a domain object type
+- `PutDomainObjectType` — create/update a domain object type
+- `DeleteDomainObjectType` — delete a domain object type
+- `ListDomainObjectTypes` — list domain object types
+- `ListObjectTypeAttributes` — list attributes for an object type
+- `ListObjectTypeAttributeValues` — list attribute values
+- `GetObjectTypeAttributeStatistics` — get attribute statistics
+
 ### Identity Resolution
 
 Find and resolve duplicate profiles.
@@ -94,6 +104,9 @@ Find and resolve duplicate profiles.
 - `GetSimilarProfiles` — find profiles similar to a given profile
 - `GetAutoMergingPreview` — preview what auto-merging would do
 - `MergeProfiles` — merge two or more profiles into one
+- `GetIdentityResolutionJob` — get identity resolution job details
+- `ListIdentityResolutionJobs` — list identity resolution jobs
+- `ListRuleBasedMatches` — list rule-based matches
 
 ```typescript
 import { GetMatchesCommand } from '@aws-sdk/client-customer-profiles';
@@ -174,6 +187,10 @@ ML-powered recommendations for profiles.
 - `UpdateRecommender` — update configuration
 - `DeleteRecommender` — delete recommender
 - `ListRecommenders` — list all recommenders
+- `StartRecommender` / `StopRecommender` — start/stop a recommender
+- `CreateRecommenderFilter` / `DeleteRecommenderFilter` / `GetRecommenderFilter` / `ListRecommenderFilters` — manage recommender filters
+- `CreateRecommenderSchema` / `DeleteRecommenderSchema` / `GetRecommenderSchema` / `ListRecommenderSchemas` — manage recommender schemas
+- `ListRecommenderRecipes` — list recipes
 
 ### Event Triggers & Streams
 
@@ -205,7 +222,9 @@ Bulk import profiles from S3.
 
 - `CreateUploadJob` — create a bulk upload job
 - `GetUploadJob` — get job status
+- `GetUploadJobPath` — get upload job path
 - `ListUploadJobs` — list all upload jobs
+- `StartUploadJob` / `StopUploadJob` — start/stop an upload job
 
 ### Domain Layouts
 

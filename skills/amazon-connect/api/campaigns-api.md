@@ -125,6 +125,15 @@ V2 adds multi-channel support (voice, email, SMS, WhatsApp), communication limit
 - `DeleteCampaign` — delete campaign
 - `ListCampaigns` — list all campaigns
 
+### Communication Limits and Entry Limits
+
+- `UpdateCampaignCommunicationLimits` — set frequency caps
+- `DeleteCampaignCommunicationLimits` — delete frequency caps
+- `UpdateCampaignCommunicationTime` — update campaign schedule windows
+- `DeleteCampaignCommunicationTime` — delete campaign schedule windows
+- `UpdateCampaignEntryLimits` — update entry limits
+- `DeleteCampaignEntryLimits` — delete entry limits
+
 ### Campaign State
 
 - `GetCampaignState` — get current state
@@ -138,6 +147,12 @@ V2 adds multi-channel support (voice, email, SMS, WhatsApp), communication limit
 
 - `PutOutboundRequestBatch` — submit outbound requests (voice/email/SMS/WhatsApp)
 - `PutProfileOutboundRequestBatch` — submit requests using Customer Profile IDs instead of raw contact info
+
+### Connect Instance Integrations (V2)
+
+- `PutConnectInstanceIntegration` — create/update an instance integration
+- `ListConnectInstanceIntegrations` — list instance integrations
+- `DeleteConnectInstanceIntegration` — delete an instance integration
 
 ### Instance Onboarding
 

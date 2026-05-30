@@ -107,6 +107,12 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [agent-experience/ccp.md](agent-experience/ccp.md) — Contact Control Panel usage
 - [agent-experience/wfm.md](agent-experience/wfm.md) — Forecasting, scheduling, adherence
 - [agent-experience/developer-guide.md](agent-experience/developer-guide.md) — 3P apps/services, SDK (10 clients, 117 methods)
+- [agent-experience/app-loading-model.md](agent-experience/app-loading-model.md) — Per-contact vs cross-contact iframe lifecycle
+- [agent-experience/embedding-security-and-csp.md](agent-experience/embedding-security-and-csp.md) — CSP `frame-ancestors`, approved origins
+- [agent-experience/permissions-and-appconfig.md](agent-experience/permissions-and-appconfig.md) — Permissions debugging runbook
+- [agent-experience/testing-local-and-deployed.md](agent-experience/testing-local-and-deployed.md) — Local + deployed testing checklist
+- [agent-experience/streams-vs-3p-apps.md](agent-experience/streams-vs-3p-apps.md) — StreamsJS vs Agent Workspace SDK
+- [agent-experience/appmanager-lifecycle.md](agent-experience/appmanager-lifecycle.md) — AppManager lifecycle/visibility patterns
 - [agent-experience/troubleshooting.md](agent-experience/troubleshooting.md) — CCP issues, diagnostics
 
 ### Data Services
