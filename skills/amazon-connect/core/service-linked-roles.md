@@ -62,7 +62,6 @@ Amazon Connect outbound campaigns uses the following SLRs:
 
 - `AWSServiceRoleForConnectCampaigns`
 - `AWSServiceRoleForConnectCampaignsExecution`
-- `AWSServiceRoleForAmazonConnectVoiceIDAccess`
 
 ### `AWSServiceRoleForConnectCampaigns`
 
@@ -84,10 +83,6 @@ Amazon Connect outbound campaigns uses the following SLRs:
 
 **Permissions granted:** allows the service to perform actions such as starting and managing outbound campaign executions, and interacting with Amazon Connect and Amazon Pinpoint resources.
 
-### `AWSServiceRoleForAmazonConnectVoiceIDAccess`
-
-Listed among the SLRs used by outbound campaigns. (The source provides no further trust/policy detail for this specific role beyond its inclusion in the outbound campaigns list.)
-
 ### Creating
 
 You don't need to manually create these SLRs. When you enable outbound campaigns for your Amazon Connect instance, the service creates them for you.
@@ -105,17 +100,6 @@ Allows Amazon Connect Customer Profiles to access AWS services and resources on 
 
 > **Important — KMS enforcement edge case:** Before January 31, 2025, Amazon Connect Customer Profiles did **not** enforce the use of a customer managed AWS KMS key. After January 31, 2025, the service **requires** a customer managed KMS key for encrypting profile data. If you created a domain before this date, review your KMS key configuration to ensure compliance with the updated requirements.
 
-## Voice ID SLR: `AWSServiceRoleForAmazonConnectVoiceID`
-
-Allows Amazon Connect Voice ID to access AWS resources on your behalf.
-
-| Property | Value |
-|---|---|
-| Role name | `AWSServiceRoleForAmazonConnectVoiceID` |
-| Service principal (trust) | `voiceid.amazonaws.com` |
-
-**Permissions granted:** allows Amazon Connect Voice ID to perform speaker recognition and fraud detection tasks.
-
 ## Managed Synchronization SLR
 
 Amazon Connect uses a service-linked role for managed synchronization to keep resources synchronized across Regions or services. The role allows Amazon Connect to synchronize configuration and resource data automatically.
@@ -129,7 +113,5 @@ Amazon Connect uses a service-linked role for managed synchronization to keep re
 | `AWSServiceRoleForAmazonConnect` | `connect.amazonaws.com` | Core Amazon Connect |
 | `AWSServiceRoleForConnectCampaigns` | `connect-campaigns.amazonaws.com` | Outbound campaigns |
 | `AWSServiceRoleForConnectCampaignsExecution` | `connect-campaigns.amazonaws.com` | Outbound campaign execution |
-| `AWSServiceRoleForAmazonConnectVoiceIDAccess` | (not specified in source) | Outbound campaigns (Voice ID access) |
 | `AWSServiceRoleForProfile` | `profile.amazonaws.com` | Customer Profiles |
-| `AWSServiceRoleForAmazonConnectVoiceID` | `voiceid.amazonaws.com` | Voice ID |
 | Managed synchronization SLR | (not specified in source) | Cross-Region/service resource sync |

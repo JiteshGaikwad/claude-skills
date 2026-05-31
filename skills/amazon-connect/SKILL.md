@@ -171,7 +171,6 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 ## Guidelines
 
 - All code examples must use AWS SDK v3 for JavaScript/TypeScript — never Java, Python, Go, or .NET
-- Voice ID is excluded (EOL May 2026) — do not reference it
 - When answering, read the relevant sub-file first rather than guessing from the routing index
 - If a feature seems unfamiliar or recent, check the Living Documentation changelog URLs below
 - Reference files are loaded on-demand — not all 59 files at once

@@ -59,5 +59,3 @@ In this repo, those map to:
 ## Skill policy notes
 
 - **SDK examples**: this skill uses **AWS SDK v3 for JavaScript/TypeScript** patterns.
-- **Voice ID**: intentionally excluded (per your project scope decision).
-

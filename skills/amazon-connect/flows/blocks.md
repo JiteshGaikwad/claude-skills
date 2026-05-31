@@ -1,6 +1,6 @@
 # Amazon Connect Flow Blocks Reference
 
-53 flow blocks organized by category. Voice ID blocks (Check Voice ID, Set Voice ID) are excluded — Voice ID reaches end of support May 2026. AWS lists 55 total blocks including those two.
+53 flow blocks organized by category.
 
 ## Quick Reference
 

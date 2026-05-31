@@ -52,7 +52,6 @@ Regions are abbreviated: USE1 (us-east-1), USW2 (us-west-2), AFS1 (af-south-1), 
 | Conversational analytics (Contact Lens) | Yes | Yes | Yes* | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Customer Profiles | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No |
 | Customer Profiles — calculated attributes API | Yes | Yes | Yes | Yes | Yes | Yes | Yes | — | — | — | — |
-| Voice ID | Yes | Yes | No | No | Yes | Yes | Yes | Yes | Yes | Yes | No |
 | Tasks | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Communications widget | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No |
 | Data lake | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
@@ -119,22 +118,6 @@ Available in: US East (N. Virginia), US West (Oregon), Africa (Cape Town), Asia 
 - Asia Pacific (Tokyo)
 
 > The source list for the calculated attributes API was truncated after Asia Pacific (Tokyo); additional Regions may exist. Verify against AWS docs.
-
-### Voice ID
-
-| Region Name | Region | Endpoint(s) |
-| --- | --- | --- |
-| US East (N. Virginia) | us-east-1 | voiceid.us-east-1.amazonaws.com / voiceid-fips.us-east-1.amazonaws.com |
-| US West (Oregon) | us-west-2 | voiceid.us-west-2.amazonaws.com / voiceid-fips.us-west-2.amazonaws.com |
-| Asia Pacific (Singapore) | ap-southeast-1 | voiceid.ap-southeast-1.amazonaws.com |
-| Asia Pacific (Sydney) | ap-southeast-2 | voiceid.ap-southeast-2.amazonaws.com |
-| Asia Pacific (Tokyo) | ap-northeast-1 | voiceid.ap-northeast-1.amazonaws.com |
-| Canada (Central) | ca-central-1 | voiceid.ca-central-1.amazonaws.com / voiceid-fips.ca-central-1.amazonaws.com |
-| Europe (Frankfurt) | eu-central-1 | voiceid.eu-central-1.amazonaws.com |
-| Europe (London) | eu-west-2 | voiceid.eu-west-2.amazonaws.com |
-
-- **Not available** in Africa (Cape Town) or Asia Pacific (Seoul) (not listed).
-- FIPS endpoints documented for: us-east-1, us-west-2, ca-central-1.
 
 ### Tasks
 
@@ -217,7 +200,7 @@ Amazon Connect includes AI-powered features — such as contact summarization, s
 
 ## Regional endpoint notes
 
-- **FIPS endpoints** (`<service>-fips.<region>.amazonaws.com`) are available for a subset of services/Regions only — documented for core Connect, AppIntegrations, Cases, Customer Profiles, and Voice ID in select US and Canada Regions (see per-feature sections).
+- **FIPS endpoints** (`<service>-fips.<region>.amazonaws.com`) are available for a subset of services/Regions only — documented for core Connect, AppIntegrations, Cases, and Customer Profiles in select US and Canada Regions (see per-feature sections).
 - **Customer Profiles** additionally exposes `*.api.aws` endpoints alongside `*.amazonaws.com`.
 - **SAML / SSO endpoint selection:** most identity providers default to the **global AWS sign-in endpoint** (Application Consumer Service / ACS) hosted in **US East (N. Virginia)**. AWS recommends **overriding this to the regional endpoint that matches the Region where your instance was created.** SAML usernames are case-sensitive. Global Resiliency deployments use a separate SAML sign-in endpoint and different instructions.
 - **VPC endpoints (S3):** VPC endpoints are **not supported** for the Amazon S3 storage that Connect uses for recordings and exported reports.
@@ -231,7 +214,7 @@ Amazon Connect Region selection is contingent upon:
 
 - **Data governance / residency requirements** — choose the Region that satisfies where your data must reside (and consider cross-region inference for AI features).
 - **Use case** — the channels and features you need (see availability matrix above; not all features exist in all Regions).
-- **Services available in each Region** — confirm every dependent feature (Contact Lens, Cases, Customer Profiles, Voice ID, outbound campaigns, etc.) exists in the candidate Region.
+- **Services available in each Region** — confirm every dependent feature (Contact Lens, Cases, Customer Profiles, outbound campaigns, etc.) exists in the candidate Region.
 - **Telephony costs** in each Region.
 - **Latency** relative to your agents, contacts, and external transfer endpoint geography.
 

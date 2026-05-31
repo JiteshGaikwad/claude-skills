@@ -587,13 +587,6 @@ Keys and values may be static or dynamic.
     "LanguageCode": "Optional. Language for current contact.",
     "CustomerId": "Optional. Customer ID associated with contact.",
     "References": { "Optional. Type: Value, static or dynamic." },
-    "IsVoiceIdStreamingEnabled": "Optional. 'TRUE' or 'FALSE'.",
-    "IsVoiceAuthenticationEnabled": "Optional. 'TRUE' or 'FALSE'.",
-    "IsFraudDetectionEnabled": "Optional. 'TRUE' or 'FALSE'.",
-    "VoiceAuthenticationThreshold": "Optional. 0-100.",
-    "VoiceAuthenticationResponseTime": "Optional. 5-10.",
-    "FraudDetectionThreshold": "Optional. 0-100.",
-    "WatchlistId": "Optional. 0-100.",
     "WisdomSessionArn": "Optional. Session ARN.",
     "TargetContact": "Required. 'Current' or 'Related'."
 }
@@ -1011,36 +1004,6 @@ Only `Equals` operator supported.
 
 ---
 
-## CheckVoiceId
-
-**Type:** `CheckVoiceId`
-
-**Description:** Checks enrollment status, voice authentication, or fraud detection results from Voice ID.
-
-**Parameters:**
-```json
-{ "CheckVoiceIdOption": "enrollmentStatus | voiceAuthentication | fraudDetection" }
-```
-
-**Results/Conditions by option:**
-
-**enrollmentStatus:**
-- Enrolled, Not enrolled, Opted out
-
-**voiceAuthentication:**
-- Authenticated, Not authenticated, Inconclusive, Not enrolled, Opted out
-
-**fraudDetection:**
-- High risk, Low risk, Inconclusive
-
-**Errors:** `NoMatchingError`
-
-**Restrictions:** Voice channel only. Error branch taken for chat/task.
-
-**UI Block:** Check Voice ID
-
----
-
 ## Compare
 
 **Type:** `Compare`
@@ -1145,24 +1108,6 @@ Only `Equals` operator supported.
 **Restrictions:** Every flow type
 
 **UI Block:** Loop
-
----
-
-## StartVoiceIdStream
-
-**Type:** `StartVoiceIdStream`
-
-**Description:** Sends audio to Voice ID for caller verification and fraud detection as soon as call is connected.
-
-**Parameters:** None (empty object)
-
-**Results/Conditions:** None
-
-**Errors:** `NoMatchingError`
-
-**Restrictions:** Voice channel only. Error branch for chat/task. Not hold flows.
-
-**UI Block:** Set Voice ID
 
 ---
 
@@ -1842,13 +1787,11 @@ InputValidation required if and only if StoreInput is True. InputEncryption only
 | CheckHoursOfOperation | Check hours of operation | All | Inbound, transfer, CQ |
 | CheckMetricData | Check staffing / queue status | All | Flow, transfer, CQ |
 | CheckOutboundCallStatus | Check call progress | Voice | Outbound campaigns |
-| CheckVoiceId | Check Voice ID | Voice | All |
 | Compare | Check contact attributes | All | All |
 | DistributeByPercentage | Distribute by percentage | All | Inbound, transfer, CQ |
 | EndFlowExecution | End flow / Resume | All | Whisper, CQ only |
 | GetMetricData | Get queue metrics | All | All |
 | Loop | Loop | All | All |
-| StartVoiceIdStream | Set Voice ID | Voice | All except hold |
 | TransferToFlow | Transfer to flow | All | Inbound, transfer |
 | UpdateFlowAttributes | Set contact attributes | All | All |
 | UpdateFlowLoggingBehavior | Set logging behavior | All | All |
@@ -1999,68 +1942,6 @@ Flow control actions don't have side effects and are only used to determine the 
 **Restrictions:** Works with Connect outbound campaigns ONLY.
 
 **UI Block:** [Check call progress](https://docs.aws.amazon.com/connect/latest/adminguide/check-call-progress.html)
-
----
-
-### 1.4 CheckVoiceId
-
-**Action Type:** `CheckVoiceId`
-
-**Description:** Checks the enrollment status, voice authentication, or fraud detection results of the voice analysis returned by Voice ID.
-
-**Parameters:**
-
-| Parameter | Type | Required | Valid Values |
-|-----------|------|----------|--------------|
-| `CheckVoiceIdOption` | String (enum) | Required | `enrollmentStatus`, `voiceAuthentication`, `fraudDetection` |
-
-```json
-{
-  "CheckVoiceIdOption": "enrollmentStatus"
-}
-```
-
-**Transitions / Conditions:**
-
-When `CheckVoiceIdOption` = **enrollmentStatus**:
-
-| Result | Description |
-|--------|-------------|
-| `Enrolled` | Caller is enrolled in voice authentication |
-| `Not enrolled` | Caller has not been enrolled |
-| `Opted out` | Caller has opted out of voice authentication |
-
-Not charged for checking enrollment status.
-
-When `CheckVoiceIdOption` = **voiceAuthentication**:
-
-| Result | Description |
-|--------|-------------|
-| `Authenticated` | Authentication score >= threshold (default 90 or custom) |
-| `Not authenticated` | Authentication score < threshold |
-| `Inconclusive` | Unable to analyze caller's speech (usually < 10 seconds of audio) |
-| `Not enrolled` | Caller not enrolled |
-| `Opted out` | Caller opted out |
-
-Not charged if result is Inconclusive, Not enrolled, or Opted out.
-
-When `CheckVoiceIdOption` = **fraudDetection**:
-
-| Result | Description |
-|--------|-------------|
-| `High risk` | Risk score meets or exceeds threshold |
-| `Low risk` | Risk score below threshold |
-| `Inconclusive` | Unable to analyze caller's voice for fraud detection |
-
-**Errors:**
-
-| Error | Description |
-|-------|-------------|
-| `NoMatchingError` | If no condition matches |
-
-**Restrictions:** Voice channel only. Chat or task channels take the Error branch.
-
-**UI Block:** [Check Voice ID](https://docs.aws.amazon.com/connect/latest/adminguide/check-voice-id.html)
 
 ---
 
@@ -2218,32 +2099,6 @@ When `CheckVoiceIdOption` = **fraudDetection**:
 **Restrictions:** Supported in every type of flow.
 
 **UI Block:** [Loop](https://docs.aws.amazon.com/connect/latest/adminguide/loop.html)
-
----
-
-### 1.10 StartVoiceIdStream
-
-**Action Type:** `StartVoiceIdStream`
-
-**Description:** Sends audio to Connect Voice ID to verify the caller's identity and match against fraudsters in watchlist, as soon as the call is connected to a flow.
-
-**Parameters:** None (empty parameter object).
-
-```json
-{}
-```
-
-**Transitions / Conditions:** None. No conditions are supported.
-
-**Errors:**
-
-| Error | Description |
-|-------|-------------|
-| `NoMatchingError` | If no condition matches |
-
-**Restrictions:** Voice channel only. Chat or task channels take the Error branch. Not supported in hold flows.
-
-**UI Block:** [Set Voice ID](https://docs.aws.amazon.com/connect/latest/adminguide/set-voice-id.html)
 
 ---
 
@@ -3194,13 +3049,11 @@ Participant actions are attempted only when the flow runs in context of a partic
 | CheckHoursOfOperation | Y | Y | Y | - | - | Y |
 | CheckMetricData | Y | Y | Y | - | - | Y |
 | CheckOutboundCallStatus | Outbound only | - | - | - | - | Voice |
-| CheckVoiceId | Y | Y | Y | Y | Y | Voice |
 | Compare | Y | Y | Y | Y | Y | Y |
 | DistributeByPercentage | Y | Y | Y | - | - | Y |
 | EndFlowExecution | - | - | Y | Y | - | Y |
 | GetMetricData | Y | Y | Y | Y | Y | Y |
 | Loop | Y | Y | Y | Y | Y | Y |
-| StartVoiceIdStream | Y | Y | Y | Y | - | Voice |
 | TransferToFlow | Y | Y | - | - | - | Y |
 | UpdateFlowAttributes | Y | Y | Y | Y | Y | Y |
 | UpdateFlowLoggingBehavior | Y | Y | Y | Y | Y | Y |
@@ -3244,7 +3097,7 @@ Participant actions are attempted only when the flow runs in context of a partic
 
 | Operator | Used By |
 |----------|---------|
-| `Equals` | CheckHoursOfOperation, CheckOutboundCallStatus, CheckVoiceId, Loop, Wait, ConnectParticipantWithLexBot, GetParticipantInput, MessageParticipantIteratively |
+| `Equals` | CheckHoursOfOperation, CheckOutboundCallStatus, Loop, Wait, ConnectParticipantWithLexBot, GetParticipantInput, MessageParticipantIteratively |
 | `NumericLessThan` | DistributeByPercentage |
 | `NumberGreaterThan` | CheckMetricData (for NumberOfAgents* metrics) |
 | `Number*` (various) | CheckMetricData (for other metrics) |

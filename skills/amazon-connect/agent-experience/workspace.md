@@ -194,7 +194,7 @@ The Customer Profile tab displays a unified customer view assembled from multipl
 
 ## 8. (Reserved)
 
-Voice ID content is intentionally excluded from this skill.
+Biometrics features are intentionally excluded from this skill.
 
 ---
 

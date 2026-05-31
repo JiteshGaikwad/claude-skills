@@ -1,6 +1,6 @@
 # Get Started with Connect Customer
 
-Use this page as an **operator/admin checklist** for standing up a new Connect Customer contact center, based on the Administrator Guide “Get started with Connect Customer” + related “Tutorials” section (Voice ID intentionally excluded).
+Use this page as an **operator/admin checklist** for standing up a new Connect Customer contact center, based on the Administrator Guide “Get started with Connect Customer” + related “Tutorials” section.
 
 If you prefer hands-on labs, the Admin Guide points to the AWS Workshop Studio workshop “Introduction to Connect Customer”.
 

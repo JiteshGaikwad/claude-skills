@@ -50,14 +50,13 @@ The top-level object for each contact segment.
 | `QualityMetrics` | QualityMetrics | Voice quality metrics (agent and customer audio quality). |
 | `DisconnectDetails` | DisconnectDetails | Call disconnect troubleshooting info. |
 | `CustomerVoiceActivity` | Object | Greeting timestamps for outbound AMD calls. |
-| `CustomerId` | String | Customer identifier (from CRM via Lambda, or Voice ID SpeakerId). |
+| `CustomerId` | String | Customer identifier (from your CRM via Lambda or other integration). |
 | `CustomerEndpoint` | Endpoint | Customer's phone number or email address. |
 | `SystemEndpoint` | Endpoint | The phone number/email the customer dialed or that was used for outbound. |
 | `AdditionalEmailRecipients` | String (1-256) | To and CC fields for email contacts. |
 | `AgentConnectionAttempts` | Integer | Number of times Connect attempted to connect this contact with an agent. |
 | `Campaign` | Campaign | Outbound campaign info. |
 | `OutboundStrategy` | OutboundStrategy | Outbound campaign dialing configuration. |
-| `VoiceIdResult` | VoiceIdResult | Voice ID authentication and fraud detection results (deprecated May 2026). |
 | `WisdomInfo` | WisdomInfo | Connect AI agents (Amazon Q) session info. |
 | `TotalPauseCount` | Integer | Total number of pauses. |
 | `TotalPauseDurationInSeconds` | Integer | Total pause duration in seconds. |
@@ -226,24 +225,6 @@ Voice call quality metrics measuring the media connection while participants are
 |---|---|---|
 | `Address` | String (1-256) | Phone number in E.164 format, or email address. |
 | `Type` | String | `TELEPHONE_NUMBER`, `VOIP`, `CONTACT_FLOW`, `CONNECT_PHONENUMBER_ARN`, or `EMAIL_ADDRESS`. |
-
-### VoiceIdResult Object (Deprecated May 2026)
-
-| Field | Type | Description |
-|---|---|---|
-| `GeneratedSpeakerId` | String (25) | Voice ID-generated speaker identifier. |
-| `SpeakerEnrolled` | Boolean | Whether the customer was enrolled during this contact. |
-| `SpeakerOptedOut` | Boolean | Whether the customer opted out during this contact. |
-| `Authentication.Score` | Integer (0-100) | Voice authentication score. |
-| `Authentication.ScoreThreshold` | Integer (0-100) | Minimum authentication threshold. |
-| `Authentication.MinimumSpeechInSeconds` | Integer (5-10) | Seconds of speech used to authenticate. |
-| `Authentication.Result` | String | `Authenticated`, `Not Authenticated`, `Not Enrolled`, `Opted Out`, `Inconclusive`, `Error`. |
-| `FraudDetection.Result` | String | `High Risk`, `Low Risk`, `Inconclusive`, `Error`. |
-| `FraudDetection.ScoreThreshold` | Integer (0-100) | Fraud detection threshold. |
-| `FraudDetection.RiskScoreKnownFraudster` | Integer (0-100) | Known fraudster risk score. |
-| `FraudDetection.RiskScoreVoiceSpoofing` | Integer | Voice spoofing risk score. |
-| `FraudDetection.GeneratedFraudsterID` | String (25) | Fraudster ID if fraud type is Known Fraudster. |
-| `FraudDetection.WatchlistID` | String (22) | Watchlist used for fraud detection. |
 
 ### WisdomInfo Object
 

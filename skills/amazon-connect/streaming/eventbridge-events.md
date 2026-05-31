@@ -111,7 +111,7 @@ The `detail` object in a contact event contains:
 | `contactLens` | ContactLens | Contact Lens configuration if enabled. |
 | `segmentAttributes` | Map | System-defined key-value pairs (channel subtype, etc.). |
 | `tags` | Map | AWS-generated and user-defined tags. |
-| `customerId` | String | Customer identifier (from CRM or Voice ID). |
+| `customerId` | String | Customer identifier (from CRM). |
 | `chatMetrics` | ChatMetrics | Chat-specific metrics (see below). |
 | `globalResiliencyMetadata` | GlobalResiliencyMetadata | Cross-region failover info. |
 | `campaign` | Campaign | Outbound campaign info. |

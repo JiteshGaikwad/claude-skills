@@ -24,7 +24,6 @@ A comprehensive Claude Code skill covering the entire Amazon Connect contact cen
 ## Key Details
 
 - **SDK**: All code examples use AWS SDK v3 for JavaScript/TypeScript only
-- **Voice ID**: Excluded (EOL May 2026)
 - **Self-updating**: SKILL.md points to AWS doc history pages so Claude can check for new features and update reference files
 
 ## Usage

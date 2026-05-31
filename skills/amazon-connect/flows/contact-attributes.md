@@ -14,7 +14,7 @@ Automatically set by Amazon Connect. Read-only. Not all blocks support using sys
 | Customer Number | `$.CustomerEndpoint.Address` | The customer's phone number (E.164 format), or email address for EMAIL channel. For outbound whisper, this is the number agents dialed. |
 | Customer Display Name | `$.CustomerEndpoint.DisplayName` | The customer's name on the email they sent. |
 | Customer Endpoint Type | `$.CustomerEndpoint.Type` | Type of customer endpoint. Valid value: `TELEPHONE_NUMBER`. |
-| Customer ID | `$.CustomerId` | Customer identification number (e.g., from CRM). Used by Voice ID as `CustomerSpeakerId`. |
+| Customer ID | `$.CustomerId` | Customer identification number (e.g., from CRM). |
 | System Number | `$.SystemEndpoint.Address` | The number the customer dialed (DID/TFN), or the email address the contact was sent to for EMAIL channel. |
 | System Display Name | `$.SystemEndpoint.DisplayName` | The display name of the email address the customer sent to. |
 | System Endpoint Type | `$.SystemEndpoint.Type` | Type of system endpoint. Valid value: `TELEPHONE_NUMBER`. |
@@ -27,7 +27,7 @@ Automatically set by Amazon Connect. Read-only. Not all blocks support using sys
 | Queue Outbound Caller ID | `$.Queue.OutboundCallerId.Address` | Outbound caller ID number defined for the queue. |
 | Queue Outbound Caller ID Type | `$.Queue.OutboundCallerId.Type` | Type of outbound caller ID. Valid value: `TELEPHONE_NUMBER`. |
 | Queue Outbound Number | (Available in outbound whisper flows only) | Outbound caller ID number for the selected queue. |
-| Text to Speech Voice | `$.TextToSpeechVoiceId` | Current Amazon Polly voice ID. |
+| Text to Speech Voice | `$.TextToSpeechVoiceId` | Current Amazon Polly voice identifier. |
 | Contact ID | `$.ContactId` | Unique identifier for the current contact. |
 | Initial Contact ID | `$.InitialContactId` | ID of the original contact in a transfer chain. Same as ContactId for initial contacts. |
 | Previous Contact ID | `$.PreviousContactId` | ID of the previous contact in a transfer chain. |

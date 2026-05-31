@@ -7,7 +7,6 @@ Related capabilities the Admin Guide groups under this area:
 - **Communications widget JWT authentication** — verify chat requests came from authenticated users on your website (the focus of this doc).
 - **Authenticate Customer flow block** — a flow block for authenticating customers inside a flow (see the flow block reference and AWS docs for details).
 - **In-app, web, and video calling** — if a customer is already logged into your app, they do not need to identify or authenticate themselves when they request a call or video conversation; you can pass their context (such as profile attributes or prior in-app actions) straight to Connect.
-- **Voice ID** — voice biometrics for caller authentication (covered separately).
 
 > The Admin Guide content for this topic is primarily about communications-widget JWT authentication and passing authenticated context. For the **Authenticate Customer** flow block configuration and Amazon Cognito / OIDC identity-provider setup, the guide points to the flow block definition reference and the broader AWS documentation rather than detailing console steps here.
 

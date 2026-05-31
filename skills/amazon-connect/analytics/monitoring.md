@@ -120,26 +120,6 @@ Dimension: `InstanceId`, `Participant`, `Stream Type`, `Type of Connection`
 
 ---
 
-## Voice ID Metrics (Deprecated May 2026)
-
-Namespace: `VoiceID`
-
-| Metric | Frequency | Unit | Dimension | Description |
-|---|---|---|---|---|
-| `RequestLatency` | 1 min | Milliseconds | API | Elapsed time for the request. |
-| `UserErrors` | 1 min | Count | API | Errors from bad user requests. |
-| `SystemErrors` | 1 min | Count | API | Internal service errors. |
-| `Throttles` | 1 min | Count | API | Requests rejected due to rate limit. |
-| `ActiveSessions` | 1 min | Count | Domain | Active sessions (pending or ongoing). |
-| `ActiveSpeakerEnrollmentJobs` | 15 min | Count | Domain | Active batch enrollment jobs. |
-| `ActiveFraudsterRegistrationJobs` | 15 min | Count | Domain | Active batch registration jobs. |
-| `Speakers` | 15 min | Count | Domain | Total speakers in domain. |
-| `Fraudsters` | 15 min | Count | Domain | Total fraudsters in domain. |
-
-API dimension values: `DeleteFraudster`, `EvaluateSession`, `ListSpeakers`, `DeleteSpeaker`, `OptOutSpeaker`.
-
----
-
 ## App Integrations Metrics
 
 Namespace: `AWS/AppIntegrations`
