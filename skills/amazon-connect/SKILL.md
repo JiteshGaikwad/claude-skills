@@ -126,6 +126,14 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [data/cases.md](data/cases.md) — Domains, templates, layouts, rules
 - [data/data-tables.md](data/data-tables.md) — Data tables in flows
 
+### Voicemail (Voicemail Express V3 — out-of-the-box add-on)
+- [voicemail/overview.md](voicemail/overview.md) — VMX3 architecture, end-to-end flow, works by default for all agents/queues
+- [voicemail/deployment.md](voicemail/deployment.md) — Prerequisites, CloudFormation install, GovCloud, upgrade, uninstall
+- [voicemail/delivery-modes.md](voicemail/delivery-modes.md) — Task, Guided Task, and SES email delivery modes
+- [voicemail/advanced-options.md](voicemail/advanced-options.md) — Self-service, in-queue voicemail, longer messages, customer-managed KMS
+- [voicemail/code-pipeline.md](voicemail/code-pipeline.md) — Lambda processing pipeline and data flow
+- [voicemail/troubleshooting.md](voicemail/troubleshooting.md) — Common issues, media-player fix, changelog
+
 ### Admin
 - [admin/workspace-admin.md](admin/workspace-admin.md) — Admin workspace themes, home dashboard, notifications
 
@@ -167,6 +175,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - "How do I set up SAML SSO for Connect?" → Read `core/identity-management.md`
 - "What are the best practices for AI agent prompts?" → Read `ai/prompt-engineering.md`
 - "How do I encrypt credit card input in a flow?" → Read `flows/encryption.md`
+- "How do I add voicemail to Amazon Connect?" → Read `voicemail/overview.md` (Voicemail Express V3 — out-of-the-box add-on)
 
 ## Guidelines
 
