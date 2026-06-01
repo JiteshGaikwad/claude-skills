@@ -2,6 +2,22 @@
 
 Contact attributes are key-value pairs associated with a contact that carry data throughout the contact's lifecycle. They are the primary mechanism for passing information between flow blocks, Lambda functions, Lex bots, and the agent workspace.
 
+## Contacts, chains, and attribute propagation
+
+- A **contact** is either a segment of a customer interaction or an agent's task. A **contact chain** is the full pathway from initial engagement to resolution; each participant's involvement is one **contact segment** (e.g. a call transferred Agent1 → Agent2 → SME = 3 contacts in one chain). In email, each incoming message can start its own chain.
+- Chain ID hierarchy: **initial contact ID → related contact ID → associated contact ID** (`InitialContactId` is the same for all contacts in a chain; `PreviousContactId`/`NextContactId` link the legs; `RelatedContactId` + `ContactAssociationId` link related contacts such as email threads). See [analytics/contact-records.md](../analytics/contact-records.md).
+
+**Two kinds of user-defined attributes — this distinction matters for transfers/conferences:**
+
+| | **Contact attributes** | **Contact segment attributes** |
+|---|---|---|
+| Scope | Propagate to the **whole chain** | Stay **specific to one segment** |
+| On transfer/conference | Values are **immediately applied to all interaction segments** in the chain | Changes in one segment (C3) stay **isolated** from others (C1/C2) |
+| On update | Updating a value on any segment **applies it across all segments** in the chain | Connect carries values forward from previous → subsequent contacts, so a value can be **changed in each new segment** |
+| Use when | Info should be consistent across the journey (e.g. an account number a 3rd agent discovers reflects back to agents 1 & 2) | Info varies as the contact moves (e.g. a business-unit name that changes per department) |
+
+System-defined attributes (channel, endpoints, agent name, etc.) are named and valued by Connect; user-defined attributes carry your business data. See `what-is-a-contact-attribute` and `use-contact-segment-attributes`.
+
 ## Attribute Types
 
 ### System Attributes
