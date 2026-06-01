@@ -224,7 +224,7 @@ Voice call quality metrics measuring the media connection while participants are
 | Field | Type | Description |
 |---|---|---|
 | `Address` | String (1-256) | Phone number in E.164 format, or email address. |
-| `Type` | String | `TELEPHONE_NUMBER`, `VOIP`, `CONTACT_FLOW`, `CONNECT_PHONENUMBER_ARN`, or `EMAIL_ADDRESS`. |
+| `Type` | String | Per the docs, **"an endpoint can only be a telephone number"** — the only valid value is **`TELEPHONE_NUMBER`**. (For the email channel, `CustomerEndpoint`/`SystemEndpoint` carry an email address annotated EMAIL_ADDRESS, but that is not an Endpoint.Type enum value.) |
 
 ### WisdomInfo Object
 
@@ -427,30 +427,22 @@ For outbound calls with answering machine detection (AMD) enabled:
 
 ## Contact States (10 States)
 
-Contacts transition through the following states during their lifecycle:
+These are the **agent activity / contact states** as defined for the **agent event stream** and real-time metrics reports (not generic CTR lifecycle fields). Verbatim meanings:
 
 | State | Description |
 |---|---|
-| `INCOMING` | Contact has arrived and is in the contact flow (IVR). |
-| `PENDING` | Contact is waiting to be routed (in queue). |
-| `CONNECTING` | Contact is being offered to an agent (ringing). |
-| `CONNECTED` | Contact is connected to an agent (active conversation). |
-| `CONNECTED_ONHOLD` | Contact is connected but customer is on hold. |
-| `PAUSED` | Contact is paused (task channel only). |
-| `MISSED` | Agent did not answer within the timeout. Contact will be re-queued. |
-| `ERROR` | An error occurred during the contact. |
-| `ENDED` | The contact interaction has ended but ACW may still be in progress. |
-| `REJECTED` | Agent explicitly rejected the contact. |
+| `INCOMING` | **Specific to queued callbacks** — the agent is presented with a callback. |
+| `PENDING` | **Specific to queued callbacks.** |
+| `CONNECTING` | An **inbound** contact is being offered to the agent (ringing); the agent hasn't acted yet. |
+| `CONNECTED` | The agent accepted the contact; customer is in conversation with the agent. |
+| `CONNECTED_ONHOLD` | The agent put the customer on hold. |
+| `PAUSED` | Task contacts only. |
+| `MISSED` | The contact was missed by the agent. |
+| `ERROR` | E.g. the customer abandons during outbound whisper. |
+| `ENDED` | The conversation ended and the agent has started ACW for that contact. |
+| `REJECTED` | The contact was rejected by the agent, **or the customer abandoned while it was connecting to the agent**. |
 
-### State Transition Flow
-
-```
-INCOMING -> PENDING -> CONNECTING -> CONNECTED -> ENDED
-                                  -> CONNECTED_ONHOLD -> CONNECTED -> ENDED
-                                  -> MISSED -> PENDING (re-queued)
-                                  -> REJECTED -> PENDING (re-queued)
-                                  -> ERROR
-```
+(There is no fixed linear state diagram in the docs — these states are reported in the agent event stream as activity changes.)
 
 ---
 
@@ -504,12 +496,20 @@ A contact was transferred if:
 - `InitiationMethod` is `TRANSFER` or `QUEUE_TRANSFER` (this contact is the result of a transfer).
 - `TransferCompletedTimestamp` is populated (cold transfer only).
 
-### Identifying Conferences
+### Identifying Conferences vs Consults vs Transfers
 
-A conference (multi-party call) is identified when:
-- Multiple agent segments exist for the same `ContactId`.
-- The `DisconnectReason` of the original agent segment shows `THIRD_PARTY_DISCONNECT` if they left the conference.
-- Conference participants appear as additional agent records in the CTR.
+**Each consult/conference/transfer leg gets a NEW Contact ID** (not multiple agents under one ContactId), linked via Initial/Next/Previous Contact ID. A "consultative call" (3 participants) resolves into Consult, Transfer, or Conference. Find the **initiator**: the record where **`InitialContactId` is NULL AND `PreviousContactId` is NULL**; every record whose `InitialContactId` == the initiator's `ContactId` is in the chain. Then classify (per the AWS reference logic):
+
+| Type | Discriminator |
+|---|---|
+| **Internal Consult** | Consulted agent enters ACW **before** the initiator; consulted agent's `AgentInteractionDuration` = **0** (customer was on hold). |
+| **Internal Conference** | Consulted agent enters ACW before the initiator; `AgentInteractionDuration` is **non-zero** (consulted agent also spoke to the customer). |
+| **Internal Transfer** | Consulted/recipient agent enters ACW **after** the initiator; `TransferCompletedTimestamp` non-zero on the initiator. |
+| **External Consult** | initiator `CustomerHoldDuration` **>** `ExternalThirdPartyInteractionDuration`. |
+| **External Conference** | initiator `CustomerHoldDuration` **<** `ExternalThirdPartyInteractionDuration`. |
+| **External Transfer** | initiator enters ACW before the external leg's `DisconnectTimestamp`; `TransferCompletedTimestamp` non-zero. |
+
+(AWS provides SQL/Python/JS reference implementations using a ~2-second `AgentInteractionDuration` threshold to distinguish consult vs conference.)
 
 ### Warm vs. Cold Transfer
 

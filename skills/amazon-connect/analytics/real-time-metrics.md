@@ -69,7 +69,7 @@ Provides per-agent detail including current status, active contacts, routing pro
 | Error | `AGENTS_ERROR` | COUNT | Agents in Error state. Agents enter this state when they: miss a call, reject a chat/task, or experience a connection failure. |
 | Online | `AGENTS_ONLINE` | COUNT | Agents who are not in Offline status. |
 | Staffed | `AGENTS_STAFFED` | COUNT | Agents who are online or in ACW. |
-| Agents Count | N/A (not available via API) | COUNT | Total agents logged into CCP. Agent is "online" when CCP status is Routable or a custom status. Available on Queue Performance Dashboard only. |
+| Agents Count | N/A (not available via API) | COUNT | Total agents logged into CCP (online = CCP status other than Offline). Surfaced via the Queue dashboard's agent-status drill-down (confirm exact name in console). |
 
 ---
 
@@ -128,7 +128,9 @@ The agent activity indicator reflects the agent's current state with a priority-
 | 6 | **Incoming** | Agent has a contact being offered/ringing (Incoming or Inbound Callback) but has not yet accepted. |
 | 7 | **Custom Status** | Agent is in a custom agent status (break, lunch, training, etc.). |
 | 8 | **Available** | Agent is available for new contacts. |
-| 9 | **Offline** | Agent is logged in but set to Offline status. Agent disappears from real-time metrics page 5-10 minutes after going offline. |
+| 9 | **Offline** | Agent is logged in but set to Offline status. |
+
+> Note: the priority ordering above is illustrative, not an AWS-documented ranking. The documented constraint is that the **Agents report can be sorted by the Activity column only when all agents are enabled for a single channel** (no secondary sort).
 
 ### Multi-Channel Behavior
 
@@ -170,15 +172,17 @@ Shows per-queue real-time metrics including contacts in queue, agents available,
 
 ### Agent Activity
 
-Shows each agent's current status, duration in status, active contacts, and the agent activity indicator with the priority logic described above. Agents in Offline status disappear from this view after 5-10 minutes.
+Shows each agent's current status, duration in status, active contacts, and the agent activity indicator.
+
+**Changing an agent's activity from the report:** managers can override the agent's CCP status via the **Agent Activity** column (lists Available, Offline, and custom statuses) — this overrides what the agent set. For a contact-state row (Incoming/On contact), the chosen status appears in the **Next activity** column once applied. The change also appears in the **agent event stream**; who made the change is visible only via CloudTrail (`PutUserStatus`). Requires the **Agent status - View** permission.
 
 ### Routing Profile
 
 Aggregates real-time metrics by routing profile to show capacity utilization across routing profiles.
 
-### Queue Performance Dashboard
+### Reports & refresh
 
-Includes an Agent Status Drill-Down showing Agents Count (total logged-in agents). This metric is only available in the dashboard, not via API.
+Real-time metrics are built under **Analytics and optimization → Real-time metrics** as **Queues**, **Agents**, or **Routing profiles** tables (add more via **New table**; gear icon to customize: Time Range with trailing window or **Midnight to now**, Filters, Metrics; **Apply**/**Save**). The page refreshes **every 15 seconds while active**; Active/Availability refresh on activity; contact near-real-time metrics refresh about a minute after a contact ends. (The **Queue dashboard** visualization — `visualize-queue-dashboard` — offers an agent-status drill-down; exact widget/metric names there should be confirmed in the console.)
 
 ---
 

@@ -54,11 +54,13 @@ POST /metrics/data
 - `WEEK` — Weekly intervals.
 - `TOTAL` — Entire time range as a single interval.
 
-### Data Availability
+### Data Availability & report limits
 
-- Data is available approximately **15 minutes** after a contact ends.
-- Maximum query range: **35 days** per request.
-- Data retained: up to **24 months**.
+- Near-real-time contact metrics refresh **about a minute** after a contact ends. (The ~15-minute figure applies to *scheduled-report* generation delay, not data availability.)
+- **Per-request window:** **3 days at a time** for 15- and 30-minute intervals; **up to 31 days** for daily/total intervals. **15-minute interval data is only available for the past 35 days.**
+- **Retention** of historical metric data follows the **contact-record retention period** (see `feature-limits.html`) — not a flat 24 months.
+- Data is only returned for **active queues** (a queue is inactive with no contacts and no available agents).
+- **Up to 5 groupings** per report. Cell limits: **120k cells** interactive (exceeding **truncates**); **200k cells** scheduled (exceeding **fails**). Reports/scheduled-reports per instance are service quotas ("Report cannot be saved" on breach).
 
 ### Legacy API: GetMetricData
 
@@ -81,7 +83,7 @@ The older `GetMetricData` API is still supported but has fewer metrics and group
 | Contacts Queued | `CONTACTS_QUEUED` | COUNT | Total contacts that entered a queue. |
 | Contacts Abandoned | `CONTACTS_ABANDONED` | COUNT | Total contacts abandoned while in queue. |
 | Max Queue Wait Time | `MAX_QUEUED_TIME` | SECONDS | Maximum time any contact waited in queue. |
-| Average Queue Answer Time | `AVG_QUEUE_ANSWER_TIME` | SECONDS | Average time contacts waited in queue before being answered (service level). |
+| Average Queue Answer Time | `AVG_QUEUE_ANSWER_TIME` | SECONDS | Average time contacts waited in queue before being answered. (Distinct from Service Level, which is its own metric.) |
 | Service Level | `SERVICE_LEVEL` | PERCENT | Percentage of contacts answered within X seconds (configurable threshold). |
 
 ---

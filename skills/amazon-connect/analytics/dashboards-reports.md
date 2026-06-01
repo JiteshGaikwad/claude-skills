@@ -10,14 +10,7 @@ Connect dashboards show real-time and historical metrics. Real-time dashboards r
 
 ### Conversational Analytics Dashboard
 
-Powered by Contact Lens. Displays:
-- Sentiment trends over time
-- Category distribution
-- Theme detection results
-- Talk time breakdowns (agent, customer, non-talk)
-- Key highlights aggregation
-- PII detection counts
-- Interruption metrics
+Powered by Contact Lens (requires the **Contact Lens - conversational analytics** permission; **tag-based access control is NOT supported** on this dashboard). Named widgets include: **Performance overview**, **Contact categories**, **Movers and shakers**, Top contact categories by AHT, Contact count by queue, and Contacts-handled + AHT trend. Choosing a contact category (or a movers-and-shakers row) drills through to **Contact search pre-filtered** for that category (a hierarchy/routing-profile page filter disables those drill-through hyperlinks).
 
 ### Queue and Agent Performance Dashboard
 
@@ -37,18 +30,11 @@ Evaluation and quality management metrics:
 - Evaluation scores by agent, queue, form
 - Automated vs. manual evaluation counts
 - Score distribution
-- Coaching plan status
+- Coaching session status
 
 ### AI Agent Performance Dashboard
 
-Metrics for AI-powered autonomous agents:
-- AI agent invocation counts and success rate
-- Handoff rate to human agents
-- Completeness and faithfulness scores
-- Goal success rate
-- Customer satisfaction correlation
-- Response helpfulness ratings (thumbs up/down)
-- Average conversation turns per invocation
+Two sections (Self-service AI performance summary + Agent-assistance AI performance summary), with drill-down tables. Real metric names: **Faithfulness score**, **Goal success rate**, **Response completion rate**, **Handoff rate** (self-service only), **Helpful / Unhelpful response** counts (thumbs up/down), **Avg. AI agent conversation turns**, AI tool **use/selection/parameter accuracy**, **Proactive intent engagement/response rate**, **Knowledge base reference count**, and AI prompt/tool **invocation latency & success rate**. (There is **no** "Completeness score" or "Customer satisfaction correlation" metric.) Requires at least one of: AI agent / AI prompt / AI guardrails view, or Connect assistant view.
 
 ### Flows and Conversational Bot Performance Dashboard
 
@@ -142,22 +128,27 @@ Historical reports query past data and can be scheduled.
 
 ### Scheduling
 
-- Schedule reports to run at specific intervals (daily, weekly, monthly).
-- Output to S3 in CSV format.
-- Reports include the configured time range, groupings, and filters.
+- Schedule reports on a recurrence (e.g. **Daily**, or **Hourly — for the previous 24 hours**; "every X day(s)" with a start time). There is a ~**15-minute delay** after the scheduled time before generation.
+- Output to S3 in CSV format (default time zone UTC); add a path prefix via **Delivery Options**.
+- Reports include the configured time range, groupings, and filters. **Scheduled reports are limited to 200k cells** (exceeding fails); interactive historical reports are limited to **120k cells** (exceeding truncates).
 - Scheduled reports are not supported when tag-based access control is enabled.
 
 ---
 
 ## Login/Logout Reports
 
-Track agent login and logout events:
-- Login timestamp
-- Logout timestamp
-- Duration of session
-- Agent hierarchy group at time of login
+Shows login/logout times and session duration per user (agents, managers, admins) — one row per session. Requires **Login/Logout report - View** (default on the Admin profile).
 
-Data sourced from agent event stream. Available in historical reports with agent grouping.
+- **Custom time range up to 7 days**; **hard limit 10,000 rows** (a report exceeding it won't complete; the page shows only 10,000; a *scheduled* report over 10,000 rows **fails** with no S3 output).
+- Generation rules: a session logged in but not out shows login only; a session that started before the range and ended within it shows both times.
+- Reports can appear "incomplete" because only explicit **Logout** actions are captured — setting Offline + closing the CCP, SSO session timeouts, or closing the browser are **not** recorded.
+- **CSV download caveat:** only the rows currently displayed export — increase **Rows per page** first.
+- Supports tag-based and hierarchy-based access control. *(There is no documented "agent hierarchy group" column, and the data is not sourced from the agent event stream — hierarchy is a filter.)*
+
+### Scheduled Login/Logout reports
+- Recurrence is **Daily** or **Weekly** (pick days); scheduling **auto-publishes** the report to the org.
+- Trailing window is always the **last 24 hours**; the report **runs at 12 AM** on the selected day in the chosen time zone (default UTC) and does not include that day's data.
+- Output is CSV to your S3 bucket; add a path **Prefix** via **Delivery Options**. Connect does **not** auto-email scheduled reports.
 
 ---
 
@@ -165,8 +156,8 @@ Data sourced from agent event stream. Available in historical reports with agent
 
 ### Save
 
-- Save a report configuration with a unique name for future use.
-- Saved to your user profile; appears under **Saved dashboards** / **Saved reports**.
+- Save a report configuration with a **unique name** (names must be unique per instance). The **Save** button is inactive if you lack create permission.
+- Saved reports appear under **Analytics and optimization → Dashboards and reports** (the **All reports** tab or the per-type tab, e.g. **Real-time metrics**).
 - Personal saved reports count towards the per-instance service quota.
 - Establish a naming convention (e.g., team name as suffix) so published reports are traceable to owners.
 - Delete saved reports via the report list if you have **Saved reports - Delete** permission.

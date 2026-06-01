@@ -38,18 +38,21 @@ All Connect events follow this structure:
 
 ## Event Categories
 
-There are **4 event categories**:
+There are **5 event categories** (source `aws.connect`, default event bus):
 
-| Category | Detail-Type | Description |
+| Category | Detail-Type string(s) | Description |
 |---|---|---|
-| Contact events | `Amazon Connect Contact Event` | Contact lifecycle state changes (11 types). |
-| Rule events | Contact Lens rule match | Contact Lens rule triggers. |
-| Performance evaluation events | Evaluation event | Agent evaluation completions. |
-| Screen recording events | Screen recording event | Screen recording state changes. |
+| Contact events | `Amazon Connect Contact Event` | Contact lifecycle state changes. |
+| Rule events (Contact Lens) | `Contact Lens Post Call Rules Matched`, `Contact Lens Realtime Rules Matched`, `Contact Lens Realtime Chat Rules Matched`, `Contact Lens Post Chat Rules Matched`, `Contact Lens Evaluation Rules Matched`, `Metrics Rules Matched` | A Contact Lens / metrics rule matched. Payload: `version, ruleName, actionName, instanceArn, contactArn, agentArn, queueArn`. |
+| Performance evaluation events | `Contact Lens Automated Evaluation Submission Failed`, `Contact Lens Evaluation Export Failed` | Fire on **failures** (automated-eval submission failure; S3 export failure) — not on completions. Payload: `metadata{contactId, instanceId, formId}, data{reasonCode, message}`. |
+| Screen recording events | `Screen Recording Status Changed` | `recordingStatus` = INITIATED/COMPLETED/PUBLISHED/FAILED, plus `recordingInfo{location, durationInMillis, sizeInBytes, startTime, endTime, publishTime}`, `clientInfo.appVersion`, `failureInfo{code,message,source}`. See [../analytics/screen-recording.md](../analytics/screen-recording.md). |
+| Voice ID events | (schema in `voiceid-event-schema`) | Enrollment, authentication, fraudster watchlist detection. |
 
 ---
 
-## Contact Event Types (11 Types)
+## Contact Event Types
+
+The contact-events data model describes **11** event categories (below), but the **`EventType` field's documented "Valid values" enum is only 9** — it omits `AMD_DISABLED` and `WEBRTC_API`, which appear in the descriptive list but not in the field enum.
 
 | Event Type | Description |
 |---|---|
@@ -518,7 +521,7 @@ For outbound calls with answering machine detection (AMD) enabled:
 
 ---
 
-## InitiationMethod (13 Values)
+## InitiationMethod (12 Values)
 
 | Method | Description |
 |---|---|

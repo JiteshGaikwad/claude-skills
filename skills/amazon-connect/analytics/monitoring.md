@@ -144,6 +144,26 @@ Dimensions: `DomainName`, `DestinationType` (Kinesis), `DestinationName` (Kinesi
 
 ---
 
+## Voice ID Metrics
+
+Namespace: `VoiceID`
+
+| Metric | Unit | Dimension | Cadence |
+|---|---|---|---|
+| `RequestLatency` | Milliseconds | API | 1 min |
+| `UserErrors` | Count | API | 1 min |
+| `SystemErrors` | Count | API | 1 min |
+| `Throttles` | Count | API | 1 min |
+| `ActiveSessions` | Count | Domain | 1 min |
+| `ActiveSpeakerEnrollmentJobs` | Count | Domain | 15 min |
+| `ActiveFraudsterRegistrationJobs` | Count | Domain | 15 min |
+| `Speakers` | Count | Domain | 15 min |
+| `Fraudsters` | Count | Domain | 15 min |
+
+Dimensions: `API` (e.g. DeleteFraudster, EvaluateSession, ListSpeakers, DeleteSpeaker, OptOutSpeaker), `Domain` (Voice ID domain). *(Voice ID end-of-support: May 20, 2026.)*
+
+---
+
 ## Quota Calculation Formulas
 
 ### Concurrent Call Utilization
@@ -230,18 +250,16 @@ Recommended widgets for a Connect monitoring dashboard:
 
 ## CloudTrail Logging
 
-All Amazon Connect public API calls are logged to AWS CloudTrail.
+All Amazon Connect public API calls are logged to AWS CloudTrail as **management events** (`eventType: AwsApiCall`, `eventCategory: Management`, `managementEvent: true`). The docs do not describe data-event logging. **`eventSource`** is `connect.amazonaws.com` (Voice ID uses `voiceid.amazonaws.com` and can share the same trail/S3 bucket; Voice ID redacts PII in logs as `HIDDEN_DUE_TO_SECURITY_REASONS`). **Service-linked roles are required** for the updated admin website + CloudTrail support. CloudTrail is on at account creation (recent activity in Event History); a trail delivers to S3 and applies to all Regions by default.
 
 ### What Is Logged
 
-- API caller identity (IAM user/role, federated identity).
-- Timestamp of the API call.
-- Source IP address.
-- API action name.
-- Request parameters.
-- Response elements.
+- API caller identity (`userIdentity`: IAM user/role, federated identity, or another AWS service).
+- Timestamp, source IP, API action name, request parameters, response elements, `readOnly`, `recipientAccountId`.
 
-### Key API Actions Logged
+*(The docs enumerate no fixed "key actions" list — the page's example action is `GetContactAttributes`. Any subset below is illustrative, not authoritative.)*
+
+### Example actions to alert on (illustrative)
 
 - `CreateUser`, `DeleteUser`, `UpdateUserPhoneConfig`
 - `CreateQueue`, `UpdateQueueStatus`
