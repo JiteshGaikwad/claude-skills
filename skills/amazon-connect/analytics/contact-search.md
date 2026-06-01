@@ -157,13 +157,13 @@ Clicking a contact in search results opens the Contact details page.
 
 ### Actions on In-Progress Contacts
 
-From the Contact details page for an in-progress contact, authorized users can:
+From the Contact details page for an in-progress contact, authorized users can act on it. Each needs a view permission (**Contact search - View** or **View my contacts - View**, optionally **Restrict contact access**) plus the action permission (shown in the console under **Contact Actions**):
 
-| Action | Permission Required | Description |
-|---|---|---|
-| **Transfer** | `Contact search - Transfer contact` | Transfer the contact to a different queue or agent. |
-| **Reschedule** | `Contact search - Reschedule contact` | Reschedule a callback contact to a different time. |
-| **End** | `Contact search - End contact` | Force-end the contact. The contact disconnects immediately. |
+| Action | Permission (Contact Actions) | API | Notes |
+|---|---|---|---|
+| **Transfer** | Transfer Contact | `TransferContact` | To a **quick connect** agent or queue. **Task, email, or chat only** (not voice). On success a **Next contact** link to the new contact appears. |
+| **Reschedule** | Reschedule contact | `UpdateContactSchedule` | **Task contacts only**; the new time must be **within 6 days** of when the task was initiated. |
+| **End** | End Contact | `StopContact` | Disconnects the contact; if it was connected to an agent, this **starts ACW**. **Voice/chat already in ACW cannot be ended**; voice initiated via DISCONNECT/TRANSFER/QUEUE_TRANSFER cannot be ended (chat/task can be ended regardless of initiation). |
 
 ### Monitoring
 
@@ -282,14 +282,13 @@ Returns a list of contact summaries with pagination token (`NextToken`). Each su
 
 | Permission | Required For |
 |---|---|
-| `Contact search - View` | Access the Contact search page. |
-| `Contact search - View contact details` | View individual contact details. |
-| `Contact search - Transfer contact` | Transfer an in-progress contact. |
-| `Contact search - Reschedule contact` | Reschedule an in-progress callback. |
-| `Contact search - End contact` | End an in-progress contact. |
-| `Recorded conversations - Listen` | Listen to call recordings. |
-| `Recorded conversations - Download` | Download call recording files. |
-| `Screen recordings - View` | View screen recordings. |
+| `Contact search - View` (or `View my contacts - View`) | Access Contact search / view contacts. `Restrict contact access` optionally narrows scope. |
+| `Contact Actions - Transfer Contact` | Transfer an in-progress task/email/chat contact. |
+| `Contact Actions - Reschedule contact` | Reschedule an in-progress task. |
+| `Contact Actions - End Contact` | End an in-progress contact. |
+| `Call recordings (unredacted) - Access` (+ `Enable download button`) | Listen to / download unredacted call recordings. `Call recordings (redacted) - Access` for redacted only. |
+| `Contact transcripts (unredacted)/(redacted) - Access` | View transcripts. |
+| `Screen recording - Access` (+ `Enable download button`) | View/download screen recordings (see [screen-recording.md](screen-recording.md)). |
 | `Contact Lens - View` | View Contact Lens analytics on the contact details page. |
 
 ---

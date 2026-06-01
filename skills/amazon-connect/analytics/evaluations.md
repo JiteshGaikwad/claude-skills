@@ -79,9 +79,9 @@ Weights determine each section/question's contribution to the overall score.
 
 | State | Description |
 |---|---|
-| **Draft** | Form is being created or edited. Cannot be used for evaluations. Use **Save draft** to preserve work. |
-| **Active** | Form is active and can be used for evaluations. Only one version of a form can be active. Previous versions are preserved for historical evaluations. |
-| **Inactive** | Form has been deactivated. Existing evaluations are preserved but no new evaluations can be created. |
+| **Draft** | Form is being created or edited (inactive, locked except while being worked on). Use **Save draft** to preserve work, or **Save and validate** to validate without activating. |
+| **Active** | Published and available for evaluations. Only one version is active; completed evaluations retain the version they used. |
+| **Locked** | A version that has been activated/published. It stays locked even after deactivation and becomes a **historical** version; you can activate a historical version to save it as a new version. (There is no "Inactive" state.) |
 
 Activating a form makes it available to evaluators. The previous version is no longer selectable for new evaluations, but historical evaluations retain their form version.
 
@@ -112,7 +112,9 @@ Optional questions can be skipped or marked as **Not applicable**. A confirmatio
 
 ## Automated Evaluations
 
-Automated evaluations use generative AI and Contact Lens analytics to assess conversations at scale without manual reviewer effort.
+Automated evaluations use generative AI (powered by **Amazon Bedrock**) and Contact Lens analytics to assess conversations at scale. They work for **voice and chat** contacts analyzed by conversational analytics (manual evaluations cover all types: voice/chat/email/task).
+
+> **Gen-AI limits/availability:** fully-automated gen-AI answers and **Ask AI** recommendations are each capped at **10 questions per contact** (this cap does **not** apply to category- or metric-based automation). Gen-AI-filled evaluations are **not available** in **Africa (Cape Town), Asia Pacific (Mumbai), Asia Pacific (Seoul), or AWS GovCloud (US-West)**. Form languages: English, Spanish, Portuguese, French, German, Italian, Chinese, Japanese, Korean — cross-language evaluation is supported (e.g. fill an English form from a Spanish transcript); justifications default to English.
 
 ### How It Works
 
@@ -177,33 +179,9 @@ This accelerates manual evaluation while maintaining human oversight. Requires t
 
 ## Screen Recording
 
-Screen recording captures the agent's desktop during interactions, enabling reviewers to see exactly what the agent did during the contact.
+Screen recording captures the agent's desktop (all open apps, up to 3 monitors) during voice/chat/task contacts, synced with the audio and transcript on the Contact details page. It requires a **client application** installed on the agent device, instance Data-storage config, and a flow block.
 
-### What It Captures
-
-- Agent's CCP (Contact Control Panel) actions.
-- Applications the agent accessed.
-- Data entry and navigation.
-- Screen content visible to the agent.
-
-### Configuration
-
-- Enabled per contact flow using the `Set recording and analytics behavior` block.
-- Requires the Amazon Connect agent workspace or a supported CCP.
-- Recordings are stored in the configured S3 bucket.
-
-### Viewing
-
-- Screen recordings are available on the Contact details page.
-- Playback is synchronized with the audio recording and transcript.
-- Reviewers can see agent actions alongside what was being said.
-
-### Use Cases
-
-- Verify data entry accuracy.
-- Identify workflow inefficiencies.
-- Detect unauthorized application usage.
-- Training material creation.
+**Full reference — client app install, system/network requirements, enablement, MP4/5fps specs, EventBridge status, and the `Screen recording - Access` / `Screen recording - Enable download button` permissions — is in [screen-recording.md](screen-recording.md).**
 
 ---
 
@@ -237,13 +215,9 @@ Coaching connects evaluation results to agent development.
 
 ## Calibration Sessions
 
-Calibration ensures consistency across evaluators:
+Calibration drives consistency/accuracy in how managers evaluate agent performance. It is gated by the **Evaluation forms - manage calibration sessions** permission ("create and manage calibration sessions"). *(AWS has no dedicated calibration documentation page — only the permission is documented; the operational mechanics below are the generally-understood usage, not verbatim from the admin guide.)*
 
-- Admins create calibration sessions assigning the same contact to multiple evaluators.
-- Each evaluator independently evaluates the contact.
-- Compare scores across evaluators to identify discrepancies.
-- Calibration evaluations are distinguished from standard evaluations via `evaluation_type` field.
-- Requires **Evaluation forms - manage calibration sessions** permission.
+- Admins create calibration sessions to compare how different evaluators score the same contact.
 
 ---
 
@@ -260,11 +234,12 @@ Managers can randomly sample agents' contacts for evaluation:
 
 ## Rules Integration
 
-Contact Lens rules can trigger automated evaluations:
+Two rule types trigger automated evaluations (action: **Submit automated evaluation** → select a form). Rules apply only to **new** contacts — they cannot be run against past/stored conversations.
 
-1. Create a rule with conditions (e.g., specific categories, sentiment thresholds).
-2. Set the rule action to submit an automated evaluation using a specific form.
-3. Matching contacts are automatically evaluated and results stored.
+1. **Conversational analytics rule** (default) — event source **"A Contact Lens post-call analysis is available"** or **"...post-chat analysis is available"**. Identify contacts with conditions like Agents, Agent hierarchy, AI agent, Queues, Initiation method.
+2. **Evaluation forms rule** — event source **"A Contact Lens evaluation result is available"**; condition is a specific answer or score on **another** evaluation form — enabling **chained** evaluations.
+
+Notes: an automated evaluation **cannot override a manually submitted** one (it fails and logs to CloudWatch); automated results are marked **"submitted by Contact Lens automation"**; submitting multiple forms per contact requires multiple rules.
 
 ---
 

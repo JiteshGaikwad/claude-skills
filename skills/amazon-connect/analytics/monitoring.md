@@ -6,44 +6,33 @@ Amazon Connect monitoring spans live call/chat monitoring, CloudWatch metrics, C
 
 ## Live Monitoring
 
-### Voice Monitoring
+Managers can silently **monitor** live voice and chat conversations, and **barge** into them. Two modes exist:
 
-Supervisors can listen to live voice calls in real-time.
+- **Three-party (default):** up to 3 participants; **monitor only — you cannot barge.** Enabled by adding a **Set recording and analytics behavior** block to the flow.
+- **Multi-party / Enhanced Monitoring:** up to 6 participants; **required for barge** (voice and chat). Enable on the console via **Enable Multi-Party Calls and Enhanced Monitoring for Voice** and **Enable Multi-Party Chats and Enhanced Monitoring for Chat** (or `UpdateInstanceAttribute` with `ENHANCED_CONTACT_MONITORING`). Requires latest CCP/Agent Workspace; StreamsJS users need ≥ 2.4.2; instances need a service-linked role. Switching modes adds events to the agent event stream — can break customizations built on the old stream.
 
-- Access from the **Real-time metrics** page by clicking the eye icon next to an active agent.
-- The supervisor hears both the agent and customer but is not heard by either party (silent monitoring).
-- Requires the `Access metrics - Real-time metrics` and `Manager monitor` permissions in the supervisor's security profile.
+### How a manager monitors / barges
 
-### Chat Monitoring
+1. Log in with **CallCenterManager** (+ **Agent** to access CCP), or a profile with the needed permissions.
+2. **Open the CCP first** — you need it open to connect to the conversation.
+3. **Analytics and optimization → Real-time metrics → Agents**. For voice, choose the **eye icon** next to the agent; for chat, choose the number of live chats, then the conversation.
+4. Toggle between **Monitor** and **Barge** (barge requires Enhanced Monitoring). There is **no limit** to how many conversations you can barge in an instance.
+5. To stop, choose **End call/End chat**; monitoring also stops automatically when the agent ends the conversation. (Firefox: switch to the CCP tab after starting, or the mic won't connect.)
 
-Supervisors can monitor live chat conversations.
+### Permissions
 
-- View the chat transcript in real-time from the Real-time metrics page.
-- The supervisor sees messages from both agent and customer.
-- Silent monitoring -- the customer and agent are not aware of the supervisor.
+- **CallCenterManager** + **Agent** profiles, **or** a custom profile with (Analytics and optimization) **Access metrics** + **Real-time contact monitoring** (monitor) + **Real-time contact barge-in** (barge), plus (CCP) **Access Contact Control Panel**.
 
-### Barge
+---
 
-Supervisors can barge into live voice conversations:
+## Recorded-Conversation Playback
 
-- From the monitoring state, the supervisor can switch to **Barge** mode.
-- In Barge mode, the supervisor joins the call as an active participant.
-- Both the agent and customer can hear the supervisor.
-- Useful for critical situations where supervisor intervention is needed immediately.
+The page is "Monitor live **and recorded** conversations" — recordings are reviewed under **Analytics and optimization → Contact search**:
 
-### Toggle Between Monitor and Barge
-
-- While monitoring, click **Barge** to join the conversation.
-- While barged, the supervisor can choose to disconnect and return to monitor-only mode.
-- The transition is seamless -- no call drop or reconnection required.
-
-### Monitoring from Real-Time Metrics
-
-1. Navigate to **Analytics and optimization > Real-time metrics > Agents**.
-2. Find the agent with an active contact.
-3. Click the **eye icon** (monitor) next to the agent's name.
-4. The supervisor's CCP opens with the monitoring session.
-5. Toggle between Monitor and Barge as needed.
+- Call recordings land in your S3 bucket shortly after disconnect, but appear in the contact record only **after the contact leaves ACW**.
+- Recorded contacts show **Play**/transcript icons in the **Recording/Transcript** column (hidden if you lack permission). Open the contact ID for the full player: scrubber, playback speed, skip ±10 seconds.
+- IVR/automated audio appears under **Recording and Transcript → Automated Interaction (IVR)**; a **Show flow details** toggle (needs **Flow - View** + **Flow modules - View**) shows flow execution.
+- Recording permissions (precise names): **Call recordings (unredacted) - Access** (controls access *and* the S3 URLs; **Enable download button** is a separate sub-permission that only shows the button), **Call recordings (redacted) - Access**, **Contact transcripts (unredacted)/(redacted) - Access**, **Manager monitor** (monitor live + listen to recordings), **Delete recorded conversations**, and the **Automated interaction voice (IVR) recordings/transcripts** variants.
 
 ---
 

@@ -102,9 +102,10 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [analytics/data-lake.md](analytics/data-lake.md) — Athena/QuickSight, zero-ETL
 - [analytics/contact-records.md](analytics/contact-records.md) — CTR data model, contact states
 - [analytics/contact-dispositions.md](analytics/contact-dispositions.md) — Disposition tracking recommendations (outbound)
-- [analytics/evaluations.md](analytics/evaluations.md) — Eval forms, screen recording, coaching
-- [analytics/monitoring.md](analytics/monitoring.md) — CloudWatch (25 metrics), CloudTrail
-- [analytics/contact-search.md](analytics/contact-search.md) — Search, in-progress management
+- [analytics/evaluations.md](analytics/evaluations.md) — Eval forms, automated/gen-AI evaluations, calibration, coaching
+- [analytics/screen-recording.md](analytics/screen-recording.md) — Agent screen recording: client app, enablement, specs, playback, EventBridge, permissions
+- [analytics/monitoring.md](analytics/monitoring.md) — Live monitor/barge (3-party vs enhanced), recorded playback, CloudWatch, CloudTrail
+- [analytics/contact-search.md](analytics/contact-search.md) — Search, in-progress management (transfer/reschedule/end)
 
 ### Data Streaming
 - [streaming/data-streaming.md](streaming/data-streaming.md) — Kinesis setup, KMS encryption
