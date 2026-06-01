@@ -6,10 +6,11 @@ Agent event streams provide near-real-time agent activity data via Amazon Kinesi
 
 ## Enabling Agent Event Streams
 
-1. Navigate to the Connect console > **Data streaming**.
-2. Under **Agent events**, enable streaming.
-3. Select an existing Kinesis Data Stream.
-4. Agent events are published as JSON records to the configured stream.
+Not enabled by default. First create a **Kinesis Data Stream** (use a **separate** stream for agent events vs contact records). Then: Connect console → instance → **Data streaming** → **Enable data streaming** → under **Agent Events** select the Kinesis stream → **Save**.
+
+- **Partition key = the agent ARN**, so all of one agent's events land on the same shard; resharding events are ignored.
+- **SSE caveat:** if the Kinesis stream has server-side encryption, Connect can't publish unless it can `kms:GenerateDataKey` — use a **customer-managed KMS key** that Connect is already granted (the same key used for recordings/exported reports) for the stream.
+- Events are published as JSON records; in the stream they appear in **reverse chronological order**.
 
 ---
 
@@ -41,7 +42,7 @@ There are **4 event types**:
 ### HEART_BEAT Behavior
 
 - Emitted every **120 seconds** if no other events are published during that interval
-- Continues for **1 hour after logout** -- this lets consumers detect stale sessions
+- Continues **up to an hour after** an agent has logged off -- this lets consumers detect stale sessions
 - Contains the same `CurrentAgentSnapshot` as the most recent `STATE_CHANGE`
 - Useful as a liveness signal for dashboards and monitoring systems
 
@@ -181,7 +182,7 @@ Present when an agent has queued a status change (e.g., selected "Break" while s
 | Field | Type | Description |
 |---|---|---|
 | `AvailableSlots` | Integer | Remaining capacity for this channel. |
-| `Channel` | String | `VOICE`, `CHAT`, or `TASK`. |
+| `Channel` | Channel | The channel (docs show VOICE and CHAT concurrency examples). |
 | `MaximumSlots` | Integer | Maximum concurrent contacts for this channel. |
 
 ### AgentHierarchyGroups
@@ -209,7 +210,7 @@ Up to 5 levels of grouping. Each level is a HierarchyGroup object.
 |---|---|---|
 | `Name` | String (1-64) | Predefined attribute name (e.g., "Language", "Technology"). |
 | `Value` | String | Attribute value (e.g., "English", "AWS Kinesis"). |
-| `ProficiencyLevel` | Float | Proficiency level: `1.0`, `2.0`, `3.0`, `4.0`, or `5.0`. |
+| `ProficiencyLevel` | Float | Proficiency level: `1.0`, `2.0`, `3.0`, `4.0`, or `5.0`. **Note:** the data-model page names this `ProficiencyLevel`, but the actual sample payload uses **`Level`** (e.g. `"Level": 3.0`) — parse for `Level`. |
 
 ### Contacts Array
 
@@ -260,7 +261,7 @@ Each element in the `Contacts` array represents an active or recently ended cont
 | `ERROR` | An error occurred during contact handling. |
 | `ENDED` | Contact has ended, agent is in ACW. |
 
-**InitiationMethod values (14 methods):**
+**InitiationMethod values (13 methods):**
 
 | Method | Description |
 |---|---|
@@ -282,17 +283,18 @@ Each element in the `Contacts` array represents an active or recently ended cont
 
 ## Calculating ACW Duration
 
-After-call work (ACW) time can be derived from agent event streams by measuring the time between the contact entering `ENDED` state and the next `STATE_CHANGE` event:
+No single event reports ACW duration — you derive it from two events (events appear in **reverse chronological order** in the stream):
+
+1. **ACW start** = the `StateStartTimestamp` of the contact whose `State` is `ENDED` (when it entered ACW).
+2. **ACW end** = the `EventTimestamp` of the event where **`EventType` = `STATE_CHANGE`**, **`CurrentAgentSnapshot` has no contacts**, AND the contact in **`PreviousAgentSnapshot` has `State` = `ENDED`**. (The empty-contacts + previous-ENDED guard is essential — `STATE_CHANGE` also fires on config changes, so "the next STATE_CHANGE" alone would give a wrong value.)
 
 ```javascript
-// ACW = time from contact ENDED to the next state change (agent becomes Available, etc.)
-const acwStart = contact.StateStartTimestamp; // when State became ENDED
-const acwEnd = nextStateChangeEvent.EventTimestamp; // when agent changed status
-
+const acwStart = endedContact.StateStartTimestamp;          // contact entered ENDED (ACW)
+// acwEndEvent: EventType==STATE_CHANGE, Current has no Contacts,
+//              Previous's contact State==ENDED
+const acwEnd = acwEndEvent.EventTimestamp;
 const acwDurationMs = new Date(acwEnd) - new Date(acwStart);
 ```
-
-The `ENDED` state represents the ACW period -- the agent is completing post-contact work. When the agent sets themselves back to an available status (or another status), the ACW period ends.
 
 ---
 
@@ -309,7 +311,7 @@ import { KinesisClient, GetRecordsCommand, GetShardIteratorCommand } from "@aws-
 ```
 
 **Detecting stale sessions:**
-- If a `HEART_BEAT` is not received for an agent within 300 seconds (2.5x the 120s interval), consider the session potentially stale
+- If a `HEART_BEAT` is not received for an agent within ~300 seconds (2.5x the 120s interval), consider the session potentially stale *(rule-of-thumb guidance — not an AWS-documented threshold)*
 - `HEART_BEAT` events continue for 1 hour after `LOGOUT`, so a missing heartbeat before logout is more concerning
 
 **Workforce management (WFM) integration:**
