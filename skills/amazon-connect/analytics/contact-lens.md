@@ -513,6 +513,33 @@ The post-contact analytics JSON file includes the following top-level fields:
 | `ContentMetadata.RedactionTypes` | Array of redaction types (e.g., `["PII"]`). |
 | `ContentMetadata.RedactionTypesMetadata.PII` | `RedactionEntitiesRequested` (entity types), `RedactionMaskMode` (`PII` or `ENTITY_TYPE`). |
 
+The schema above is the **voice** file. Chat and email files differ:
+
+### Chat output file (differences from voice)
+
+- `ConversationCharacteristics` sub-objects (Sentiment, ResponseTime, etc.) use **`DetailsByParticipantRole`** maps keyed by role (`AGENT`/`CUSTOMER`) — a role key is present only if there was eligible data.
+- Categories `PointsOfInterest` use **`TranscriptItems`** (each `{Id, CharacterOffsets}`) instead of millis offsets; a match can span multiple transcript items; an empty `PointsOfInterest` means the category matched the whole contact.
+- Issue/outcome/action summary entries also point at **`TranscriptItems`** (`Id` + `CharacterOffsets`).
+- **Sentiment shift** is in `DetailsByParticipantRole` with `BeginScore`/`EndScore`; chat has **`ResponseTime`** (agent greeting / avg & max response per role).
+- `DisplayNames` (and `AttachmentName`) are **redacted** as PII. In the redacted file, `CharacterOffsets` describe the **redacted** content length, not the original.
+- No `LoudnessScore`, no non-talk time; transcript items use chat fields (`ParticipantRole`, `Content`, `Sentiment`, etc.).
+
+### Email output file (differences from voice/chat)
+
+- `Channel` = `EMAIL`; `Version` uses an **`EMAIL-`** prefix (e.g. `EMAIL-2026-01-01`).
+- **No** sentiment scores, sentiment shift, loudness, or non-talk time.
+- Has a **`Configuration`** object: `ChannelConfiguration.AnalyticsModes` (`["ContactLens"]`), `LanguageLocale`, `RedactionConfiguration` (`Behavior`, `Policy` = `RedactedAndOriginal`/…, `Entities`, `MaskMode`), `SummaryConfiguration.SummaryModes` (`["ContactChain"]`).
+- **`CustomerMetadata`** with `ContactId`, `InstanceId`, and `InputFiles` (`EmailMessageS3URI`, `EmailMessagePlainTextS3URI`).
+- `Categories.MatchedDetails.<cat>` uses `PointsOfInterest[].Contacts[].ContactId` and adds **`EventSource: "OnEmailAnalysisAvailable"`**.
+- Summary is **`ContactSummary.ContactChainSummary.Content`** (summarizes the whole email thread/contact chain), **not** `PostContactSummary`.
+
+### Output file S3 locations
+
+- Original: `connect-instance-bucket/Analysis/{Voice|Chat|Email}/YYYY/MM/DD/{contactId}_analysis_{ts}.json`
+- Redacted: `.../Analysis/{Voice|Chat|Email}/Redacted/YYYY/MM/DD/{contactId}_analysis_redacted_{ts}.json`
+- Redacted audio (voice): `.../Analysis/Voice/Redacted/YYYY/MM/DD/{contactId}_call_recording_redacted_{ts}.wav`
+- To delete a recording, delete **both** the redacted and unredacted files. (Email timestamps use the `YYYYMMDDThh:mm_UTC` form.)
+
 ---
 
 ## APIs and Data Access
