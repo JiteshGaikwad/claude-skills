@@ -13,7 +13,7 @@ Skills are folders of instructions and resources that Claude loads dynamically t
 
 | Skill | Description | Files |
 |-------|-------------|-------|
-| [amazon-connect](skills/amazon-connect/) | Amazon Connect contact center — flows, routing, Contact Lens, metrics, Customer Profiles, Cases, Q Connect, AI agents, Lambda integration, streaming, EventBridge, and AWS SDK v3 API reference | 112 |
+| [amazon-connect](skills/amazon-connect/) | Amazon Connect contact center — flows, routing, Contact Lens, metrics, Customer Profiles, Cases, Q Connect, AI agents, Lambda integration, streaming, EventBridge, and AWS SDK v3 API reference | 113 |
 
 ## Installation
 

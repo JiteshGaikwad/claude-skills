@@ -71,6 +71,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [flows/encryption.md](flows/encryption.md) — Sensitive input encryption, key management, PCI compliance
 - [flows/prompts.md](flows/prompts.md) — Prompts: create/upload, TTS (Polly), Set voice block, dynamic prompts, S3 playback
 - [flows/ssml.md](flows/ssml.md) — Supported SSML tags for TTS + strict-use rule (use only listed tags, never assume)
+- [flows/queued-callback.md](flows/queued-callback.md) — Queued callback setup: flow build, Transfer to callback queue options, routing, queue limits, chat/task/email
 
 ### Channels
 - [channels/voice.md](channels/voice.md) — Softphone, recording, audio enhancement
@@ -180,6 +181,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - "How do I add voicemail to Amazon Connect?" → Read `voicemail/overview.md` (Voicemail Express V3 — out-of-the-box add-on)
 - "How do I create a prompt / add text-to-speech / play audio from S3?" → Read `flows/prompts.md`
 - "Write/generate a TTS prompt with SSML" or "which SSML tags does Connect support?" → Read `flows/ssml.md` first, then use only the tags listed there
+- "How do I set up a queued callback / offer a callback in queue?" → Read `flows/queued-callback.md`
 
 ## Guidelines
 

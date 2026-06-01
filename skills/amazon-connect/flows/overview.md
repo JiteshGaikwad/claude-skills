@@ -424,18 +424,18 @@ Agents can trigger outbound flows:
 
 ### Queued Callback
 
-- Offered to customers waiting in queue via the `Create callback` block (inside a customer queue flow or transfer to queue flow).
-- The customer provides a callback number (or uses the inbound number).
-- The callback is placed in the queue at the same priority/position.
-- When an agent becomes available, Connect dials the customer.
-- Retry logic: configurable number of retry attempts and delay between retries.
+- Built from `Get customer input` → `Store customer input` → `Set callback number` → `Transfer to queue` (the **Transfer to callback queue** tab). There is no "Create callback" block.
+- The customer provides a callback number (or you reuse the inbound number via `Set callback number` > System > Customer Number).
+- The callback keeps its place in queue; with a dedicated callback queue, set it at the same routing-profile priority as the inbound queue so the original call start time orders it.
+- When an agent accepts the callback in the CCP, Connect dials the customer.
+- Retry logic (on the Transfer to callback queue tab): **Initial delay**, **Maximum number of retries** (retries after the initial call; voicemail counts as connected), **Minimum time between attempts**.
 
 ### Customer-First Mode
 
-- In customer-first callback mode, Connect dials the customer first.
-- Only after the customer answers does Connect route to an available agent.
-- Reduces agent idle time waiting for the customer to pick up.
-- Configured in the callback block settings.
+- In customer-first callback mode, Connect dials the customer first; only after they answer does it route to an available agent (reduces agent idle time).
+- Chosen via the **Set creation flow** dial-mode option in the `Transfer to queue` block. **Available only when Next Generation Amazon Connect is enabled.**
+
+> Full setup (queues, routing profiles, whisper flows, creation flow, queue limits, chat/task/email callbacks): see [queued-callback.md](queued-callback.md).
 
 ## Limits
 
