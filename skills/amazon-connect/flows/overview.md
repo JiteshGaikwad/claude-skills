@@ -291,15 +291,17 @@ Prompts are audio files or text-to-speech content used in flows.
 
 ### S3-Stored Prompts
 
-- Dynamic content can be served from S3 via the `Get stored content` block.
+- Audio can be played from an S3 bucket via the `Get customer input`, `Loop prompts`, `Play prompt`, or `Store customer input` blocks (choose S3 as the source). Requires a bucket policy granting `connect.amazonaws.com` access; `.wav` must be 8 kHz mono U-Law.
 - Useful for frequently changing prompts without re-uploading.
 
 ### Text-to-Speech
 
-- Amazon Polly voices available for TTS.
-- SSML tags supported for pronunciation, emphasis, pauses, etc.
+- Amazon Polly voices available for TTS (Neural/Standard free; Generative billed).
+- SSML tags supported for pronunciation, pauses, volume/rate/pitch, etc. — Connect supports a specific subset only.
 - Dynamic text strings can reference contact attributes in Play prompt blocks.
-- Voice and language selectable per block.
+- Voice, language, and engine set via the `Set voice` block.
+
+> Full detail: see [prompts.md](prompts.md) (creating prompts, TTS, Set voice, dynamic prompts, S3) and [ssml.md](ssml.md) (supported SSML tags + strict-use rule).
 
 ## Import and Export
 

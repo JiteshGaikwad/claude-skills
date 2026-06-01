@@ -69,6 +69,8 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [flows/flow-best-practices.md](flows/flow-best-practices.md) — Flow best practices, flow logs (CloudWatch), contact initiation methods (13 types)
 - [flows/flow-logging.md](flows/flow-logging.md) — CloudWatch Logs setup, log format, troubleshooting
 - [flows/encryption.md](flows/encryption.md) — Sensitive input encryption, key management, PCI compliance
+- [flows/prompts.md](flows/prompts.md) — Prompts: create/upload, TTS (Polly), Set voice block, dynamic prompts, S3 playback
+- [flows/ssml.md](flows/ssml.md) — Supported SSML tags for TTS + strict-use rule (use only listed tags, never assume)
 
 ### Channels
 - [channels/voice.md](channels/voice.md) — Softphone, recording, audio enhancement
@@ -176,13 +178,16 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - "What are the best practices for AI agent prompts?" → Read `ai/prompt-engineering.md`
 - "How do I encrypt credit card input in a flow?" → Read `flows/encryption.md`
 - "How do I add voicemail to Amazon Connect?" → Read `voicemail/overview.md` (Voicemail Express V3 — out-of-the-box add-on)
+- "How do I create a prompt / add text-to-speech / play audio from S3?" → Read `flows/prompts.md`
+- "Write/generate a TTS prompt with SSML" or "which SSML tags does Connect support?" → Read `flows/ssml.md` first, then use only the tags listed there
 
 ## Guidelines
 
 - All code examples must use AWS SDK v3 for JavaScript/TypeScript — never Java, Python, Go, or .NET
+- **When generating any text-to-speech / prompt message with SSML, FIRST read `flows/ssml.md` and use ONLY the SSML tags listed there. Never assume a tag is supported — Connect supports a specific subset and silently ignores the rest.**
 - When answering, read the relevant sub-file first rather than guessing from the routing index
 - If a feature seems unfamiliar or recent, check the Living Documentation changelog URLs below
-- Reference files are loaded on-demand — not all 59 files at once
+- Reference files are loaded on-demand — read only the files relevant to the question, not the whole skill at once
 
 ## Living Documentation
 
