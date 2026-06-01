@@ -105,7 +105,7 @@ The `detail` object in a contact event contains:
 | `eventType` | String | Event type (see above). |
 | `disconnectReason` | String | Why the contact ended (see below). |
 | `answeringMachineDetectionStatus` | String | AMD result for outbound calls (see below). |
-| `updatedProperties` | String[] | Properties updated (for CONTACT_DATA_UPDATED). Values: `ScheduledTimestamp`, `UserDefinedAttributes`, `ContactLens.ConversationalAnalytics.Configuration`, `Segment Attributes`, `Tags`, `GlobalResiliencyMetadata`, `RoutingCriteria.Step.Status`. |
+| `updatedProperties` | String[] | Properties updated (for CONTACT_DATA_UPDATED). Documented enum: `ScheduledTimestamp`, `UserDefinedAttributes`, `ContactLens.ConversationalAnalytics.Configuration`, `Segment Attributes`, `Tags`, `GlobalResiliencyMetadata`. (`RoutingCriteria.Step.Status` appears in sample payloads — e.g. on routing-step expiry — but is not in the field's listed valid-values enum.) |
 | `agentInfo` | AgentInfo | Agent information (see below). |
 | `queueInfo` | QueueInfo | Queue information. Not included for OUTBOUND contacts. |
 | `routingCriteria` | RoutingCriteria[] | Routing criteria with steps. |
@@ -121,7 +121,7 @@ The `detail` object in a contact event contains:
 | `outboundStrategy` | OutboundStrategy | Outbound campaign dialing configuration. |
 | `systemEndpoint` | Endpoint | System phone number/email (not populated for CALLBACK, MONITOR, QUEUE_TRANSFER). |
 | `customerEndpoint` | Endpoint | Customer phone number/email. |
-| `contactDetails` | Map | User-defined attributes for task contacts. |
+| `contactDetails` | Map | Task-contact details: `ContactDetailsName` (1-128), `ContactDetailsValue` (0-1024), `ReferenceAttributeName` (1-128), `ReferenceAttributesValue` (0-1024). |
 | `contactEvaluations` | Map | Performance evaluations keyed by FormId. |
 | `stateTransitions` | StateTransition[] | Supervisor state transitions (SILENT_MONITOR, BARGE). |
 
