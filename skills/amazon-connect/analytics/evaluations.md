@@ -43,7 +43,7 @@ Evaluation Form
 
 Questions can be conditionally enabled or disabled based on answers to other questions:
 
-- A parent question must be **Single selection** or **Multiple selection** and cannot be optional.
+- A parent question must be **Single selection** or **Multiple selection** and cannot be optional; the **child (follow-up) question must have its Optional question checkbox selected**.
 - Configure one or more answer values that trigger the conditional question.
 - Conditionally enabled questions are disabled by default; conditionally disabled questions are enabled by default.
 - If Gen AI automation is enabled on a conditional question, it counts towards the Gen AI usage limit regardless of whether it was triggered.
@@ -72,8 +72,11 @@ Weights determine each section/question's contribution to the overall score.
 - **Weight by section**: Evenly distribute question weights within each section. Set section-level weights.
 - **Weight by question**: Set individual question weights directly.
 - When you change one weight, others auto-adjust so the total remains 100%.
-- **Exclude optional questions from scoring**: Assigns all optional questions a weight of zero and redistributes among remaining questions.
+- **Exclude optional questions from scoring**: a form-level toggle that assigns optional questions weight zero up front and redistributes among the rest.
+- **Enable "Not Applicable"** (an answer-option setting, distinct from the toggle above): when an evaluator answers a question **Not Applicable** at scoring time, that question is dropped and its weight is **redistributed proportionally** so the total stays 100%. *Example:* Q1-Q4 weighted 40/20/20/20 scoring 60%; mark Q4 N/A → 50/25/25 → score becomes **75%**.
 - The overall evaluation score is a weighted average expressed as a percentage (0-100%).
+
+> **Prerequisite (IT admin):** before evaluations can be stored/exported, set an S3 bucket under console → instance → **Data storage → Content evaluations**. Forms can be **Duplicated** and tagged for access control; the **Preview** button activates only after scores are assigned to all questions. Automation target (agent vs automated/self-service interaction) is chosen via **Additional settings → Contact interaction type**.
 
 ### Form Lifecycle
 
@@ -110,11 +113,23 @@ Optional questions can be skipped or marked as **Not applicable**. A confirmatio
 
 ---
 
+## Search & View Evaluations
+
+Find and review evaluated contacts side-by-side with audio/screen recordings, transcripts, summaries, and insights (page: `search-evaluations.html`).
+
+- **Path:** Analytics and optimization → **Contact search** → filter → open the contact ID → **Evaluations** (top right); completed ones show under **Completed**.
+- **Search by:** evaluation form, score, last-updated date/range, evaluator, and status (via the **Evaluation forms - perform contact evaluations** permission, which also enables viewing the form **audit trail**). Agents use **view my received evaluations**.
+- **Date limits:** up to **8 weeks** of contacts per search; evaluations viewable from up to **2 years** ago.
+
+---
+
 ## Automated Evaluations
 
-Automated evaluations use generative AI (powered by **Amazon Bedrock**) and Contact Lens analytics to assess conversations at scale. They work for **voice and chat** contacts analyzed by conversational analytics (manual evaluations cover all types: voice/chat/email/task).
+Automated evaluations use generative AI (powered by **Amazon Bedrock**, with Bedrock abuse-detection/safety controls) and Contact Lens analytics to assess conversations at scale. They work for **voice and chat** contacts analyzed by conversational analytics (manual evaluations cover all types: voice/chat/email/task).
 
-> **Gen-AI limits/availability:** fully-automated gen-AI answers and **Ask AI** recommendations are each capped at **10 questions per contact** (this cap does **not** apply to category- or metric-based automation). Gen-AI-filled evaluations are **not available** in **Africa (Cape Town), Asia Pacific (Mumbai), Asia Pacific (Seoul), or AWS GovCloud (US-West)**. Form languages: English, Spanish, Portuguese, French, German, Italian, Chinese, Japanese, Korean — cross-language evaluation is supported (e.g. fill an English form from a Spanish transcript); justifications default to English.
+> **Gen-AI limits/availability:** fully-automated gen-AI answers and **Ask AI** recommendations are each capped at **10 questions per contact** (cap does **not** apply to category-/metric-based automation; **both caps are support-adjustable**). Gen-AI-filled evaluations are **not available** in **Africa (Cape Town), Asia Pacific (Seoul), or AWS GovCloud (US-West)** — note that *non*-gen-AI performance evaluations ARE available in all Connect regions; only the gen-AI variant is restricted. Form languages: English, Spanish, Portuguese, French, German, Italian, Chinese, Japanese, Korean (set via **Additional settings → Form language**); cross-language evaluation is supported (e.g. fill an English form from a Spanish transcript). If no form language is set, the model auto-detects and answers in the question's language; **justifications default to English**.
+>
+> **Gen-AI accuracy guidelines:** use questions answerable from the transcript alone (avoid numeric and highly subjective ones); write complete sentences; put business-specific criteria in **instructions to evaluators**; prefer the words "agent"/"customer"; use double quotes only to require exact spoken words. Evaluations API actions are rate-limited to **1 request/second**.
 
 ### How It Works
 
@@ -185,39 +200,27 @@ Screen recording captures the agent's desktop (all open apps, up to 3 monitors) 
 
 ---
 
-## Coaching Workflows
+## Coaching (Coaching Sessions)
 
-Coaching connects evaluation results to agent development.
+Coaching delivers structured, data-driven feedback to agents based on evaluations (part of performance evaluations; page: `provide-coaching.html`). The artifact is a **coaching session** (not a "coaching plan").
 
-### Creating a Coaching Plan
+**Create:** Analytics and optimization → **Contact search** → open an evaluated contact's evaluation → **Coach on this evaluation** → add the whole evaluation, a section, and/or a question to a session (link to an existing session or create a new one), classifying items as **strength** or **growth opportunity**. **Up to 10** evaluations/items per session. Set date/time/location, provide feedback, and set improvement goals on coaching topics — the **session due date is mandatory**.
 
-1. From a completed evaluation, select **Create coaching plan**.
-2. Include specific interaction examples (the evaluated contact).
-3. Define coaching objectives and focus areas based on the evaluation scores.
-4. Add notes and guidance for the agent.
-5. Assign a coach and participant(s).
+**Lifecycle:** **Submit** saves it as a **draft** → **Share** makes it visible to the agent (who gets an email with a link if email is configured) → after the session, **Mark as Complete** (optional note). The agent can **acknowledge** it and add their own notes.
 
-### Agent Experience
+**Manage/find:** Analytics and optimization → **Coaching sessions** lists past/upcoming sessions, searchable by coach, participant agent, creator (quality manager), topic, past-due-not-completed, pending-completion (shared/draft), and completed-but-not-acknowledged.
 
-1. Agent receives a notification about the coaching plan.
-2. Agent reviews the evaluation, feedback, and interaction examples.
-3. Agent can listen to the recording and read the transcript of the example interaction.
-4. Agent acknowledges the coaching plan.
-5. Agent can add their own notes and comments.
-
-### Manager Tracking
-
-- Track coaching plan status (pending, acknowledged, completed).
-- View coaching history per agent.
-- Correlate coaching with subsequent evaluation score improvements.
+**Permissions:** **Coaching - my coaching sessions** (View/Create/Edit/Delete — coach or participant; participant View includes acknowledge) and **Coaching - manage coaching sessions** (View/Create/Edit/Delete — any session; Create can assign another user as coach).
 
 ---
 
 ## Calibration Sessions
 
-Calibration drives consistency/accuracy in how managers evaluate agent performance. It is gated by the **Evaluation forms - manage calibration sessions** permission ("create and manage calibration sessions"). *(AWS has no dedicated calibration documentation page — only the permission is documented; the operational mechanics below are the generally-understood usage, not verbatim from the admin guide.)*
+Calibration drives consistency/accuracy in how managers score (page: `calibrations-performance-evaluations.html`; permission **Evaluation forms - manage calibration sessions**).
 
-- Admins create calibration sessions to compare how different evaluators score the same contact.
+- Create a session, add a contact and multiple evaluators, and designate an **expert participant**.
+- Each evaluator evaluates the same contact; results compare each evaluator against the expert via an **absolute-deviation-from-expert** metric, with a downloadable **.csv calibration report**.
+- Workflow: create → edit → perform → **finalize**; participants get email notifications. **Automation is disabled** for calibration evaluations.
 
 ---
 
@@ -291,6 +294,8 @@ Notes: an automated evaluation **cannot override a manually submitted** one (it 
 ---
 
 ## APIs
+
+The full action set is the **Evaluation actions** group in the Connect API Reference (`evaluation-api.html`); the action/field names below follow that reference (the admin-guide pages only reference the group collectively). Evaluation actions are rate-limited to **1 request/second**.
 
 ### Form Management
 
@@ -366,5 +371,5 @@ Notes: an automated evaluation **cannot override a manually submitted** one (it 
 3. **Write clear instructions** -- Specific, complete-sentence instructions improve both human and AI evaluation accuracy.
 4. **Calibrate regularly** -- Have multiple evaluators assess the same contacts and compare scores to ensure consistency.
 5. **Combine automated + manual** -- Use automated evaluations for coverage and manual evaluations for nuanced assessment.
-6. **Close the loop** -- Always create coaching plans for low scores. Evaluations without follow-up do not improve performance.
+6. **Close the loop** -- Create coaching sessions ("Coach on this evaluation") for low scores. Evaluations without follow-up do not improve performance.
 7. **Version forms carefully** -- When updating criteria, create a new version rather than modifying the active form to preserve historical comparability.
