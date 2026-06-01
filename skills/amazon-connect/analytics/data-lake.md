@@ -23,7 +23,7 @@ This eliminates the operational burden of maintaining data pipelines and reduces
 
 ## Data Refresh
 
-- Data is refreshed within **1 hour** of the contact or event completing.
+- Data is refreshed after a record is created, with a small processing delay — typically available in **less than an hour**.
 - This is near real-time but not instant. For true real-time data, use Kinesis streaming or the agent event stream.
 - Refresh is continuous; there is no manual trigger required.
 - Contact records may be delivered more than once (at-least-once delivery). Updates (e.g., via `update-contact-attributes`) deliver a new record.
@@ -46,29 +46,21 @@ The data lake includes the following tables. Each can be associated independentl
 | `agent_queue_statistic_record` | `agent_queue_statistic_record` | Agent performance metrics per queue per interval. |
 | `agent_statistic_record` | `agent_statistic_record` | Agent-level statistics per interval. |
 
-### AI and Bot Tables
+### AI tables and test-case results
 
-| Table | Description |
+Documented under headings on `data-type-definitions.html` (the page shows their columns but does **not** print an explicit `Table name:` line — the snake_case names below are inferred from the section headings): **AI Agent**, **AI Agent Knowledge Base**, **AI Prompt**, **AI Session**, **AI Tool**, and **Connect test case execution results**.
+
+### Other table families (exact names by child page)
+
+| Domain (page) | Tables |
 |---|---|
-| `ai_agent` | AI agent invocation events (success, latency, helpfulness). |
-| `ai_agent_knowledge_base` | Knowledge base references during AI sessions. |
-| `ai_prompt` | AI prompt invocations (model, tokens, latency). |
-| `ai_session` | AI session summaries (goal success, faithfulness, completeness). |
-| `ai_tool` | AI tool invocations (accuracy scores, latency). |
-| Bot analytics tables | Bot conversations, intents, slots. |
-
-### Other Tables
-
-| Table | Description |
-|---|---|
-| `agent_event` | Agent state transitions, configuration changes, contact associations. |
-| `amazon_connect_resource_tags` | Resource tag snapshots for tag-based reporting. |
-| `connect_test_case_execution_results` | Test case pass/fail results by execution method. |
-| Cases tables | Case metadata, fields, associated contacts. |
-| Configuration tables | Instance configuration data. |
-| Forecasting tables | Short-term and long-term forecast data, intraday forecasts. |
-| Outbound campaigns tables | Campaign event data. |
-| Scheduling tables | Staff shifts, timeoffs, schedule metrics, schedule goals. |
+| **Agent events / tags** (`data-type-definitions`) | `agent_event`, `amazon_connect_resource_tags` |
+| **Bot analytics** (`data-lake-botdata`) | `bot_conversations`, `bot_intents`, `bot_slots` |
+| **Cases** (`data-lake-cases-data`) | `case_events`, `case_related_item_events` |
+| **Configuration** (`data-lake-configuration-data`) | `agent_hierarchy_groups`, `routing_profiles`, `users` |
+| **Forecasting** (`data-lake-forecasting-data`) | `forecast_groups`, `long_term_forecasts`, `short_term_forecasts`, `intraday_forecasts`, `demand_group`, `demand_group_definitions` |
+| **Outbound campaigns** (`data-lake-outbound-campaigns-data`) | `outbound_campaign_events` |
+| **Scheduling** (`data-lake-scheduling`) | `staff_scheduling_profile`, `shift_activities`, `shift_profiles`, `staffing_groups`, `staffing_group_forecast_groups`, `staffing_group_supervisors`, `staff_shifts`, `staff_shift_activities`, `staff_timeoff_balance_changes`, `staff_timeoffs`, `staff_timeoff_intervals`, `staff_demand_group`, `staffing_group_demand_group`, `staff_shift_activity_allocations`, `schedule_metrics`, `schedule_goals`, `shift_rotation_patterns`, `shift_rotation_steps` |
 
 ---
 
@@ -359,13 +351,18 @@ Resource link tables are cross-account Athena table references that allow you to
 1. In the Connect console, add a data share specifying the target account ID.
 2. An AWS RAM invitation is created for the consumer account.
 3. Accept the RAM invitation in the consumer account (expires after 12 hours if not accepted).
-4. In the consumer account's Lake Formation, create resource link tables pointing to the shared tables.
-5. Grant SELECT permissions via Lake Formation to specific IAM roles/users.
+4. In the consumer account's Lake Formation (configuring user needs **Data lake administrator** permissions), create **Resource link** tables pointing to the shared tables (Lake Formation → Tables → Create table → Resource link → pick the accepted shared table; name can be anything).
+5. Grant SELECT permissions via Lake Formation to specific IAM roles/users, then query in Athena: `select * from {{database}}.{{linked_table}} limit 10`.
+
+### Cross-account access for an integrated service (e.g. QuickSight) — two grants
+
+Selecting through a resource link from a tool like Athena/QuickSight needs **both**:
+1. **Describe on the resource link** — Lake Formation → select the resource link → **Actions → Grant** → principal (e.g. the QuickSight user ARN, as SAML user) → permission **Describe**. (Makes the table visible, but data not yet queryable.)
+2. **Select on the target** — same resource link → **Actions → Grant on Target** → same principal → permission **Select**. (Enables preview/visualize.)
 
 ### Important Notes
 
-- Initial RAM request is created only for the first share; subsequent shares reuse accepted RAM.
-- Lake Formation optimizes by reusing existing accepted RAM requests when possible.
+- Initial RAM request is created only for the first share; subsequent shares reuse accepted RAM (Lake Formation optimizes by reusing accepted requests). RAM invitations **expire after 12 hours** if not accepted.
 - Revoke access to remove visibility to the data.
 
 ---
