@@ -378,6 +378,78 @@ All historical (via `GetMetricDataV2` + the Outbound campaigns performance dashb
 
 ---
 
+## Category 22: Customer-first Callback Metrics
+
+Dashboard / `GetMetricDataV2` only; require Next-Gen Connect.
+
+| Metric | API Name | Unit | Description |
+|---|---|---|---|
+| Average queue abandon time – customer first callback | `AVG_ABANDON_TIME` (filter `INITIATION_METHOD = CALLBACK_CUSTOMER_FIRST_DIALED`) | hh:mm:ss | Avg queue wait of first-callback contacts that abandoned. |
+| Average queue answer time – customer first callback | `AVG_QUEUE_ANSWER_TIME_CUSTOMER_FIRST_CALLBACK` | hh:mm:ss | Avg time first-callback contacts were queued before being answered. |
+| Average wait time after customer first callback connection | `AVG_WAIT_TIME_AFTER_CUSTOMER_FIRST_CALLBACK_CONNECTION` | hh:mm:ss | Avg customer wait to connect to an agent after answering their first callback. |
+| Callback attempts | `SUM_RETRY_CALLBACK_ATTEMPTS` | Integer | Contacts where a callback was attempted but the customer didn't answer. (RT + Historical.) |
+
+> `CALLBACK_CUSTOMER_FIRST_DIALED` / `CALLBACK_CUSTOMER_FIRST_QUEUED` are `INITIATION_METHOD` **filter values**, not metrics.
+
+## Category 23: Flow Outcome & Timing Metrics
+
+| Metric | API Name | Unit | Description |
+|---|---|---|---|
+| Flows started | `FLOWS_STARTED` | Count | Flows that started in the interval (SUM). |
+| Flows outcome | `FLOWS_OUTCOME` | Count | Flow outcomes (terminal blocks) for flows started in the interval. Since 2024-04-22. |
+| Flows outcome percentage | `PERCENT_FLOWS_OUTCOME` | Percent | % of a given outcome type (filtered outcome / total outcomes × 100). |
+| Maximum flow time | `MAX_FLOW_TIME` | hh:mm:ss | Max time a flow took to complete. |
+| Minimum flow time | `MIN_FLOW_TIME` | hh:mm:ss | Min time a flow took to complete. |
+| Contact flow time | `SUM_CONTACT_FLOW_TIME` | hh:mm:ss | Total IVR time a contact spent in a flow (start → queued). Outbound excluded. |
+
+## Category 24: Routing Step Metrics
+
+| Metric | API Name | Unit | Description |
+|---|---|---|---|
+| Step contacts queued | `STEP_CONTACTS_QUEUED` | Count | Contacts that entered a specific routing step (counted per step). |
+| Step expired % | `PERCENT_CONTACTS_STEP_EXPIRED` | Percent | % of contacts for which the routing step expired. |
+| Step joined % | `PERCENT_CONTACTS_STEP_JOINED` | Percent | % of contacts that joined with an agent at the routing step. |
+
+## Category 25: Testing & Simulation Metrics
+
+| Metric | API Name | Unit | Description |
+|---|---|---|---|
+| Test case execution count | `TEST_CASE_EXECUTION_COUNT` | Integer | Total automated test-case executions. (Failed/success **rates** use `TEST_CASE_EXECUTION_FAILED_COUNT`/`_SUCCESS_COUNT` as numerators — those aren't standalone metrics.) |
+
+## Category 26: Additional Queue / Hold / Transfer / Agent Metrics
+
+These complete the glossary (mostly historical unless noted). Service-level `_IN_X` buckets accept X presets 15–600s or custom up to 7 days.
+
+| Metric | API Name | Unit | Description |
+|---|---|---|---|
+| Contacts answered in X seconds | `SUM_CONTACTS_ANSWERED_IN_X` | Integer | Contacts answered within X sec of being queued. (RT + Historical.) |
+| Contacts abandoned in X seconds | `SUM_CONTACTS_ABANDONED_IN_X` | Integer | Queued contacts that abandoned within X sec. |
+| Contacts removed from queue in X seconds | `CONTACTS_REMOVED_FROM_QUEUE_IN_X` | Integer | Contacts removed from queue within X sec (answered/abandoned/callback). |
+| Contacts resolved in X seconds | `CONTACTS_RESOLVED_IN_X` | Integer | Contacts resolved within X sec (initiation → ACW end/disconnect). |
+| Average queue abandon time | `AVG_ABANDON_TIME` | hh:mm:ss | Avg queue wait of contacts that abandoned. |
+| Average resolution time | `AVG_RESOLUTION_TIME` | hh:mm:ss | Avg contact resolution time. |
+| Contacts disconnected (in queue) | `SUM_CONTACTS_DISCONNECTED` | Integer | Contacts the customer disconnected while waiting in queue. |
+| Contacts hold disconnect | `CONTACTS_HOLD_ABANDONS` | Integer | Contacts disconnected while the customer was on hold. (RT "Hold abandons".) |
+| Contacts hold agent disconnect | `CONTACTS_ON_HOLD_AGENT_DISCONNECT` | Integer | Agent disconnected while customer on hold. |
+| Contacts hold customer disconnect | `CONTACTS_ON_HOLD_CUSTOMER_DISCONNECT` | Integer | Customer disconnected while on hold. |
+| Contacts agent hung up first | `CONTACTS_AGENT_HUNG_UP_FIRST` | Integer | Contacts where the agent disconnected before the customer. (V1; in V2 use `CONTACTS_HANDLED` + `DISCONNECT_REASON=AGENT_DISCONNECT`.) |
+| Contacts consulted | `CONTACTS_CONSULTED` | Integer | Handled contacts where the agent consulted another agent. **(V1 only; deprecated 2019 — returns "-".)** |
+| Contacts transferred out internal | `CONTACTS_TRANSFERRED_OUT_INTERNAL` | Integer | Agent transferred from the queue to an internal source (queue/agent). |
+| Contacts transferred out external | `CONTACTS_TRANSFERRED_OUT_EXTERNAL` | Integer | Agent transferred from the queue to an external source (e.g. outside number). |
+| Contacts transferred in from queue | `CONTACTS_TRANSFERRED_IN_FROM_Q` | Integer | Contacts transferred into the queue from another queue. (V1; V2 = `CONTACTS_CREATED` + `INITIATION_METHOD=TRANSFER`.) |
+| Contacts queued (by enqueue time) | `CONTACTS_QUEUED_BY_ENQUEUE` | Integer | Contacts queued, aggregated on ENQUEUE timestamp. Since 2024-01-12. |
+| Contacts handled (by connected-to-agent time) | `CONTACTS_HANDLED_CONNECTED_TO_AGENT_TIME` | Integer | Contacts connected to an agent, aggregated on CONNECTED_TO_AGENT timestamp. Since 2024-01-12. |
+| Contact handle time (sum) | `SUM_HANDLE_TIME` | hh:mm:ss | Total handle time = interaction + customer hold + ACW + agent pause. |
+| Customer hold time (sum) | `SUM_HOLD_TIME` | hh:mm:ss | Total customer hold time after connecting to an agent. |
+| Error status time | `SUM_ERROR_STATUS_TIME_AGENT` | hh:mm:ss | Per-agent total time contacts were in error status. Since 2023-12-29. |
+| Online time | `SUM_ONLINE_TIME_AGENT` | hh:mm:ss | Total time agent CCP status was not Offline (incl. custom). Since 2023-10-01. |
+
+**Chat (add to Category 11):** `AVG_RESPONSE_TIME_CUSTOMER` (avg customer response time, sec — dashboard), `AVG_MESSAGES` (avg messages/contact — dashboard), `CONVERSATIONS_ABANDONED` (contacts with no agent and/or customer messages — dashboard).
+
+**Real-time (via `GetContactMetrics`/`GetCurrentMetricData`, not GetMetricDataV2):** `ESTIMATED_WAIT_TIME` (estimated queue wait, sec; Next-Gen Connect), `POSITION_IN_QUEUE` (a contact's queue position). *(`MAX_AVAILABLE_SLOTS` is not a metric — it's the max value of the Active slots metric, `SLOTS_AVAILABLE`.)*
+
+---
+
 ## Groupings
 
 Historical metrics can be grouped by:
