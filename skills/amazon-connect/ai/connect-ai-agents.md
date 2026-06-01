@@ -47,29 +47,21 @@ Customer --> Connect Flow --> Conversational AI Bot (Lex) --> Orchestrator AI Ag
                                                         Tools   KB    Guardrails
 ```
 
-### MCP Tool Integration
+### Tool Integration
 
-The orchestrator agent invokes tools to perform actions. Four tool categories are supported:
+An orchestrator AI agent has **three configurable tool types**: **MCP tools**, **Return to Control**, and **Constant**. (The `SelfServiceOrchestrator` ships with two default Return-to-Control tools — `Complete` and `Escalate`.)
 
 #### 1. MCP Tools (Backend Actions)
 
-MCP (Model Context Protocol) tools connect the AI agent to backend systems for real-time data retrieval and actions:
+Connect supports **Model Context Protocol (MCP)** tools so AI agents (self-service *and* agent-assist) retrieve information and complete actions without human intervention — invoked mid-conversation without returning control to the flow. Three sources:
 
-- Look up account information
-- Check order status
-- Process returns or cancellations
-- Update customer records
-- Query external APIs
-- Execute business logic
+- **Out-of-the-box tools** — prebuilt for common tasks (update contact attributes, retrieve case info, update cases, start tasks).
+- **Flow module tools** — create new, or convert existing flow modules into MCP tools, reusing business logic across static and generative workflows; can reach third-party sources.
+- **Third-party MCP tools** — via **Amazon Bedrock AgentCore Gateway**. Register AgentCore Gateways in the AWS console (like registering a third-party app) to access their tools, including remote MCP servers.
 
-MCP tools are defined with input/output schemas and the orchestrator decides when and how to invoke them based on conversation context.
+**MCP tool invocations have a 30-second timeout** — exceeding it terminates the request. When adding a tool you can: add usage instructions for that tool, override input values, and filter output values for accuracy.
 
-**Tool definition includes:**
-- **Name** -- unique identifier for the tool
-- **Description** -- natural language description of what the tool does (used by the orchestrator to decide when to invoke)
-- **Input schema** -- JSON schema defining required and optional parameters
-- **Output schema** -- expected response format
-- **Endpoint** -- the backend service URL or Lambda ARN
+**Governance:** AI-agent tool access reuses the **security-profile** framework — see "AI Agent Security Profiles" below.
 
 #### 2. Return to Control Tools
 
@@ -91,54 +83,78 @@ Return to Control tools hand execution back to the Connect flow for processing.
     },
     "sentiment": {
       "type": "string",
-      "enum": ["POSITIVE", "NEUTRAL", "NEGATIVE", "FRUSTRATED"],
-      "description": "Current customer sentiment"
+      "enum": ["positive", "neutral", "frustrated"],
+      "description": "Customer's emotional state during the conversation"
     },
     "escalationSummary": {
       "type": "string",
-      "description": "Brief summary of the conversation so far"
+      "maxLength": 500,
+      "description": "Summary for the human agent: what was asked, what was attempted, why escalation is needed"
     },
     "escalationReason": {
       "type": "string",
-      "description": "Why the AI is escalating to a human"
+      "enum": ["complex_request", "technical_issue", "customer_frustration", "policy_exception", "out_of_scope", "other"],
+      "description": "Category for the escalation reason"
     }
   },
-  "required": ["customerIntent", "sentiment", "escalationReason"]
+  "required": ["escalationReason", "escalationSummary", "customerIntent", "sentiment"]
 }
 ```
 
 **Handling Return to Control in flows:**
 
-When a Return to Control tool fires, the flow receives control back. Use the **Check contact attributes** block to inspect the Lex session attribute `"Tool"`:
+When a Return-to-Control tool fires, the AI conversation ends, control returns to the flow, and the tool name + input params are stored as **Lex session attributes**. Add a **Check contact attributes** block after the **Default** output of the `Get customer input` block:
 
 ```
 Check contact attributes
   Namespace: Lex
-  Key: Tool
+  Key: Session attributes
+  Session Attribute Key: Tool
   Conditions:
-    "Escalate" --> Route to queue
+    "Escalate" --> Set working queue + Transfer to queue
     "Complete" --> Disconnect
     "CustomTool" --> Custom handling branch
+  No match --> Disconnect or further routing
 ```
 
-Custom tool output fields are available as additional Lex session attributes for downstream flow logic.
+To use a custom tool's input params downstream, add a **Set contact attributes** block copying them from `Lex → Session attributes` (e.g. `escalationReason`, `escalationSummary`, `customerIntent`, `sentiment`) into contact attributes. Optionally add a **Set event flow** block (event hook **Default flow for Agent UI**) to surface escalation context to the human agent.
 
 #### 3. Constant Tools
 
-Constant tools return a static string value every time they are invoked. Useful for:
+Constant tools return a configured static string every time they're invoked and do **not** end the conversation — useful for testing/development before a real MCP tool is connected (e.g. a `getOrderStatus` Constant returning sample JSON). Create via **Add tool → Create new AI Tool**, type **Constant**, enter the **Constant value**, **Create** then **Publish**.
 
-- Testing and development
-- Providing fixed reference data (e.g., business hours, policy text)
-- Mocking backend responses during flow development
-- Injecting static context the orchestrator can reference
+### Message Parsing (`<message>` tags)
 
-#### 4. Built-in Tools
+Orchestrator AI agents **only display text wrapped in `<message>` tags** — the orchestration prompt must enforce this, or the customer sees nothing. The system prompt should require:
 
-Built-in tools are provided by Amazon Connect and available without additional configuration:
+```
+<formatting_requirements>
+MUST format all responses with this structure:
+<message>
+Your response to the customer. This text is spoken aloud — write naturally and conversationally.
+</message>
+<thinking>
+Reasoning can go here for complex decisions.
+</thinking>
+MUST NEVER put thinking content inside message tags.
+MUST always start with <message>, even when using tools, so the customer knows you're working on it.
+</formatting_requirements>
+```
 
-- **Knowledge Base Search** -- queries associated knowledge bases for relevant content
-- **Complete** -- ends the self-service interaction successfully
-- **Escalate** -- transfers to a human agent
+Multiple `<message>` blocks can appear in one response (an initial acknowledgment, then results). **Orchestration agents require chat streaming for chat contacts** (see [chat-message-streaming.md](chat-message-streaming.md)).
+
+### AI Agent Security Profiles (tool governance)
+
+AI-agent tool access reuses the human security-profile framework. Permissions can be assigned for **AgentCore gateway tools**, **flow modules saved as tools**, and **out-of-the-box tools**. Built-in tool permissions mirror the equivalent human-agent permission:
+
+| AI agent tool | Required (Agent Applications) permission |
+|---|---|
+| Cases (Create, Update, Search) | Cases – View / Edit |
+| Customer Profiles | Customer Profiles – View |
+| Knowledge Base (Retrieve) | Connect assistant – View Access |
+| Tasks (StartTaskContact) | Tasks – Create |
+
+**Shared permissions:** for **Agent Assistance**, the human agent's security profile must include the **same** permissions as the AI agent's configured tools — invocations are authorized against the combination, so if the AI agent has the Cases tool, the human agent must also have Cases permissions or invocations fail. Administering AI agents needs (under **AI agent designer**) AI Agents / AI Prompts / AI Guardrails – All Access, plus **Conversational AI – All Access** and **Flows / Flow Modules – All Access** (Channels and Flows).
 
 ---
 
@@ -166,26 +182,60 @@ Agent-assist surfaces in the agent workspace (CCP or custom agent desktop) as a 
 
 ---
 
-## AI Agent Types (10 Total)
+## AI Agent Types
 
-Each AI agent type corresponds to a specific function. You can override the system default configuration for each type.
+An **AI agent** is a resource that configures the end-to-end behavior for a use case: which AI prompts and AI guardrails are used, and the response locale. Each use case has a system-default AI agent you can override with your own. Connect provides these out-of-the-box AI agent types (the **AI Agent type** options when creating one):
 
-| # | Agent Type | API Type Value | Description |
-|---|------------|----------------|-------------|
-| 1 | **Orchestration** | `SELF_SERVICE` | Top-level orchestrator for agentic self-service; controls reasoning, planning, and tool selection |
-| 2 | **Answer Recommendation** | `ANSWER_RECOMMENDATION` | Suggests answers to agents during live voice/chat conversations based on KB content |
-| 3 | **Manual Search** | `MANUAL_SEARCH` | Powers agent-initiated knowledge base searches from the workspace panel |
-| 4 | **Self Service** | `SELF_SERVICE` | Handles autonomous customer self-service interactions end-to-end |
-| 5 | **Email Response** | `EMAIL_RESPONSE` | Generates complete email replies to customer inquiries |
-| 6 | **Email Overview** | `EMAIL_OVERVIEW` | Summarizes email threads for agent context before responding |
-| 7 | **Email Generative Answer** | `EMAIL_GENERATIVE_ANSWER` | Generates answer content for email responses from KB |
-| 8 | **Note Taking** | `NOTE_TAKING` | Creates structured notes from voice/chat conversations |
-| 9 | **Agent Assistance** | `AGENT_ASSISTANCE` | Provides real-time suggestions during agent conversations |
-| 10 | **Case Summarization** | `CASE_SUMMARIZATION` | Summarizes multi-interaction customer cases across contacts |
+| Agent type | What it does | AI prompt types it uses |
+|---|---|---|
+| **Orchestration** | Agentic agent that orchestrates use cases per customer needs; multi-turn conversation + invokes pre-configured tools. | Orchestration |
+| **Answer Recommendation** | Automatic intent-based recommendations pushed to agents during a contact. | Intent labelling generation, Query reformulation, Answer generation |
+| **Manual Search** | Solutions for on-demand searches an agent initiates. | Answer generation |
+| **Self Service** | Solutions for customer self-service. (Locale **English only**.) | Self-service pre-processing, Self-service answer generation |
+| **Email Response** | Email reply to the customer from a conversation script. | Email response |
+| **Email Overview** | Overview/summary of an email thread. | Email overview |
+| **Email Generative Answer** | Generated answer content for email responses. | Email generative answer |
+| **Note Taking** | Structured real-time notes (invoked as a tool on the Agent Assistance orchestrator). | Note taking |
+| **Agent Assistance** | Real-time orchestrator backing agent-assist. | Orchestration |
+| **Case Summarization** | Summarizes a case. | Case Summarization |
 
-### Overriding System Defaults
+**Partial override:** Answer recommendation, Self service, Email response, and Email generative answer support **two** prompt types each. If you override one prompt but not the other, the AI agent keeps the system default for the one you didn't override — so you can override just part of the default experience.
 
-Each agent type has a system-managed default configuration. You can create custom overrides:
+For prompt details (types, YAML, models, caching, CLI) see [ai-prompts.md](ai-prompts.md); for guardrails see [ai-guardrails.md](ai-guardrails.md).
+
+### Default system prompts & agents
+
+You can't edit default prompts directly, but you can **copy** one as a starting point; adding the copy to an AI agent overrides the default. System AI prompts include: `AgentAssistanceOrchestration`, `AnswerGeneration`, `CaseSummarization`, `EmailGenerativeAnswer`, `EmailOverview`, `EmailQueryReformulation`, `EmailResponse`, `IntentLabelingGeneration`, `NoteTaking`, `QueryReformulation`, `SalesAgent`, `SelfServiceAnswerGeneration`, `SelfServiceOrchestration`, `SelfServicePreProcessing`. System AI agents include: `AgentAssistanceOrchestrator`, `AnswerRecommendation`, `CaseSummarization`, `EmailGenerativeAnswer`, `EmailOverview`, `EmailResponse`, `ManualSearch`, `NoteTaking`, `SalesAgent`, `SelfService`, `SelfServiceOrchestrator`. (List with `aws qconnect list-ai-agents --origin SYSTEM` / `list-ai-prompt-versions --origin SYSTEM`.)
+
+### Create an AI agent (console)
+
+1. **AI agent designer → AI agents → Create AI Agent**; choose the **AI Agent type**.
+2. On the **Agent builder**, set the **Locale** for the response (available for Orchestration, Answer recommendation, Manual search, and the Email types; **not** for Self-service, which is English only).
+3. Choose the **published AI prompt version(s)** to override the defaults, and optionally add **one** AI guardrail.
+4. **Save**, then **Publish** to make the new agent version available as a default.
+
+### Setting which agent is used (precedence)
+
+Precedence is **session-level > Assistant-level > system default**.
+
+```bash
+# Create / version (qualify as <AI_AGENT_ID>:<VERSION_NUMBER>)
+aws qconnect create-ai-agent --type ANSWER_RECOMMENDATION --visibility-status PUBLISHED \
+  --configuration '{"answerRecommendationAIAgentConfiguration":{"answerGenerationAIPromptId":"<ID:VER>","intentLabelingGenerationAIPromptId":"<ID:VER>","queryReformulationAIPromptId":"<ID:VER>"}}'
+aws qconnect create-ai-agent-version --assistant-id <ID> --ai-agent-id <ID>
+
+# Set the default on the Assistant (takes effect next contact/session)
+aws qconnect update-assistant-ai-agent --assistant-id <ID> --ai-agent-type MANUAL_SEARCH \
+  --configuration '{"aiAgentId":"<ID:VERSION>"}'
+
+# Override per session
+aws qconnect update-session --assistant-id <ID> --session-id <ID> \
+  --ai-agent-configuration '{"ANSWER_RECOMMENDATION":{...},"MANUAL_SEARCH":{...}}'
+```
+
+For a partial config, omit the prompt IDs you want to keep as the default. Manual search has a single prompt (`manualSearchAIAgentConfiguration.answerGenerationAIPromptId`), so no partial config applies.
+
+### Overriding System Defaults (SDK)
 
 ```javascript
 const { QConnectClient, CreateAIAgentCommand } = require("@aws-sdk/client-qconnect");
@@ -235,136 +285,20 @@ const versions = await client.send(new ListAIAgentVersionsCommand({
 
 ---
 
-## AI Prompt Customization
+## AI Prompts
 
-### Prompt Types (12 Total)
+Connect supports **12 AI prompt types** (Orchestration, Answer generation, Intent labelling generation, Query reformulation, Self-service pre-processing, Self-service answer generation, Email response/overview/generative-answer/query-reformulation, Note taking, Case Summarization). Prompts are YAML templates in one of two formats (`MESSAGES` or `TEXT_COMPLETIONS`), support system variables (`$.transcript`, `$.contentExcerpt`, `$.locale`, `$.query`) and custom variables (`$.Custom.<NAME>`), and use prompt caching (on by default).
 
-Amazon Connect supports customizing 12 distinct AI prompt types:
-
-| # | Prompt Type | Purpose |
-|---|-------------|---------|
-| 1 | **Orchestration** | Controls how the orchestrator AI agent reasons, plans, and selects tools |
-| 2 | **Answer generation** | Generates responses to customer questions from knowledge base content |
-| 3 | **Intent labeling** | Classifies customer intent from conversation transcript |
-| 4 | **Query reformulation** | Rewrites customer queries for better knowledge base retrieval |
-| 5 | **Self-service pre-processing** | Prepares and validates input before self-service answer generation |
-| 6 | **Self-service answer generation** | Generates answers in the self-service (no human agent) context |
-| 7 | **Email response** | Generates full email replies to customer emails |
-| 8 | **Email overview** | Produces a summary overview of an email thread |
-| 9 | **Email generative answer** | Generates answer content for email responses from KB |
-| 10 | **Email query reformulation** | Rewrites email queries for better KB search |
-| 11 | **Note taking** | Generates structured notes from conversation content |
-| 12 | **Case summarization** | Produces summaries of customer cases across interactions |
-
-### YAML Template Format
-
-Prompts are defined as YAML templates:
-
-```yaml
-prompt:
-  system: |
-    You are a helpful customer service assistant for {{$.Custom.companyName}}.
-    Always respond in {{$.locale}}.
-    
-    Use the following knowledge to answer questions:
-    {{$.contentExcerpt}}
-    
-    Conversation so far:
-    {{$.transcript}}
-```
-
-### Message Format
-
-Two formats are supported:
-
-- **MESSAGES** -- structured multi-turn conversation format (system/user/assistant messages). Preferred for most use cases.
-- **TEXT_COMPLETIONS** -- single text block format. Use for simpler prompts or legacy compatibility.
-
-### Template Variables
-
-| Variable | Description |
-|----------|-------------|
-| `$.transcript` | Full conversation transcript up to current point |
-| `$.contentExcerpt` | Retrieved knowledge base content relevant to the query |
-| `$.locale` | Customer's detected or configured locale (e.g., `en-US`) |
-| `$.query` | The current customer query or utterance |
-| `$.Custom.<name>` | Custom variables passed from the Connect flow (e.g., `$.Custom.accountType`, `$.Custom.companyName`) |
-
-### Prompt Caching
-
-Prompt caching is **enabled by default**. The system caches compiled prompt templates to reduce latency on subsequent invocations. Cache invalidation occurs automatically when prompts are updated.
-
-### Prompt Engineering Best Practices
-
-- Be specific about the desired output format (e.g., "respond in 2-3 sentences")
-- Include example interactions in the system prompt for few-shot learning
-- Use the `$.Custom.*` variables to inject context-specific instructions
-- Test prompts with diverse conversation scenarios before deploying
-- Use the MESSAGES format for multi-turn conversations
-- Keep orchestration prompts focused on tool selection logic, not response generation
-- For detailed prompt engineering guidance, see [prompt-engineering.md](../prompt-engineering.md) if available
+**Full reference — types, YAML fields, the assistant-prefill caveat, variables, optimization/caching, per-Region models, and CLI — is in [ai-prompts.md](ai-prompts.md).**
 
 ---
 
 ## AI Guardrails
 
-Guardrails enforce safety and compliance boundaries on AI-generated content. A maximum of **3 custom guardrails** can be configured per instance.
+Connect AI agents use Amazon Bedrock guardrails (max **3** custom per business; an agent attaches **one**). Six policy areas: **content filters** (Hate/Insults/Sexual/Violence/Misconduct/Prompt Attack, strength NONE/LOW/MEDIUM/HIGH per input+output), **denied topics** (up to 30), **contextual grounding** (GROUNDING/RELEVANCE, threshold 0–0.99), **word filters** (exact match; up to 10,000 custom items), **sensitive information / PII** (Block / Anonymize-mask / None, full entity list + custom regex), and **blocked messaging**. Image filtering is not supported; enabling guardrails on streaming adds time-to-first-token latency.
 
-### Content Filters
+**Full reference — every policy's options, thresholds, limits, the complete PII entity list, and CLI — is in [ai-guardrails.md](ai-guardrails.md).**
 
-Six categories with configurable strength levels (NONE, LOW, MEDIUM, HIGH):
-
-| Category | What It Filters |
-|----------|----------------|
-| **Hate** | Discriminatory or prejudiced content based on identity |
-| **Insults** | Demeaning, belittling, or offensive language |
-| **Sexual** | Sexually explicit or suggestive content |
-| **Violence** | Graphic violence, threats, or harm |
-| **Misconduct** | Illegal activities, self-harm, or dangerous instructions |
-| **Prompt Attack** | Jailbreak attempts, prompt injection, role-play exploitation |
-
-Each filter can be configured independently for **input** (customer messages) and **output** (AI responses).
-
-### Denied Topics
-
-- Define up to **30 denied topics** per guardrail
-- Each topic includes a name, description, and sample phrases
-- The AI will refuse to engage with denied topics and provide a configured fallback response
-- Example topics: "competitor comparisons", "investment advice", "medical diagnosis"
-
-### Contextual Grounding (Hallucination Detection)
-
-Detects when AI responses are not grounded in the provided knowledge base content:
-
-- Compares generated text against source documents
-- Configurable grounding threshold (0.0 to 1.0)
-- Responses below the threshold are blocked or flagged
-- Reduces fabricated information in customer-facing responses
-
-### Word Filters
-
-- Block specific words or phrases from appearing in AI output
-- Supports exact match and pattern matching
-- Useful for blocking profanity, competitor names, or internal terminology
-
-### Sensitive Information (PII)
-
-Two modes for handling personally identifiable information:
-
-- **Block** -- prevents the AI from including PII in responses entirely
-- **Mask** -- replaces PII with placeholder tokens (e.g., `[SSN]`, `[EMAIL]`)
-
-Supported PII types include: SSN, credit card numbers, email addresses, phone numbers, physical addresses, dates of birth, account numbers, and more.
-
-### Streaming Latency Tradeoff
-
-Guardrails introduce a latency tradeoff when streaming is enabled:
-
-- **With guardrails on streaming**: responses are buffered and checked before each chunk is sent, adding 200-500ms per chunk
-- **Without guardrails on streaming**: responses stream immediately with lower latency
-- For non-streaming responses, guardrails add a single check at the end with minimal impact
-
-Evaluate whether the safety benefit justifies the latency cost for your use case.
 
 ---
 
@@ -378,32 +312,25 @@ Evaluate whether the safety benefit justifies the latency cost for your use case
 4. **Add tools** -- attach MCP tools, Return to Control tools, and/or Constant tools with input/output schemas
 5. **Associate knowledge bases** -- link one or more KBs with content tag filters and search type configuration
 6. **Configure orchestration prompt** -- customize the system prompt that guides agent reasoning and tool selection behavior
-7. **Set as default** -- designate the orchestrator as the default for the instance (or override per-session via Lambda)
-8. **Create conversational AI bot (Lex)** -- create a Lex V2 bot that serves as the conversational front-end
-9. **Build contact flow** -- wire the Lex bot into a Connect contact flow with appropriate Return to Control handling
-10. **Test end-to-end** -- verify tool invocations, escalation paths, and guardrail enforcement
+7. **Set as default self-service agent** -- on the **AI Agents** page, set it in **Default AI Agent Configurations → Self Service** (or override per-session via Lambda).
+8. **Create a Conversational AI bot** -- **Routing → Flows → Conversational AI**, with the Connect Customer AI agent intent enabled (this is the conversational front end).
+9. **Build a contact flow** -- a `Get customer input` block invoking the bot, plus a `Check contact attributes` block to route on the Return-to-Control tool selected.
+10. **Test end-to-end** -- verify tool invocations, escalation paths, and guardrail enforcement. (For chat, enable chat streaming.)
 
 ### Agent-Assist Setup
 
-1. **Create/configure AI agent** -- customize the Answer Recommendation or Agent Assistance agent type
-2. **Associate knowledge bases** -- link KBs containing support documentation
-3. **Enable Contact Lens** -- required for real-time transcript streaming to Q Connect
-4. **Configure the contact flow** -- add the "Create Q Connect Session" block or use a Lambda to create sessions
-5. **Enable in agent workspace** -- ensure the Q Connect panel is visible in the agent workspace configuration
-6. **Test with live contacts** -- verify recommendations appear and are relevant
+1. **Create/configure AI agent** -- customize the Answer Recommendation or Agent Assistance agent type.
+2. **Associate knowledge bases** -- link KBs containing support documentation.
+3. **Enable Contact Lens** -- required for voice (real-time transcript streaming); **not** required for chat. Add a `Set recording and analytics behavior` block configured for Contact Lens real-time.
+4. **Add the `Connect assistant` flow block** -- associates the assistant domain to the contact (for default behavior). To customize agents, use a Lambda + `AWS Lambda function` block instead.
+5. **Enable in agent workspace** -- ensure agents have **Connect assistant – View Access** so recommendations appear.
+6. **Test with live contacts** -- verify recommendations appear and are relevant.
 
 ### Security Profiles for AI Agents
 
-AI agent administration requires security profile permissions:
-
-| Permission | Allows |
-|---|---|
-| **AI Agents - View** | View AI agent configurations |
-| **AI Agents - Edit** | Create and modify AI agents |
-| **AI Prompts - View** | View prompt configurations |
-| **AI Prompts - Edit** | Create and modify prompts |
-| **AI Guardrails - View** | View guardrail configurations |
-| **AI Guardrails - Edit** | Create and modify guardrails |
+- **Admins** (configure agents/prompts/guardrails): under **AI agent designer** — AI Agents, AI Prompts, AI Guardrails (View or All Access). Creating agents/flows also needs **Conversational AI** and **Flows / Flow Modules** (Channels and Flows).
+- **Agents** (receive recommendations / use guides): **Connect assistant – View Access**, plus **Custom views – Access** for step-by-step guides.
+- **AI-agent tool governance** mirrors human permissions — see "AI Agent Security Profiles" above.
 
 ---
 
@@ -448,7 +375,7 @@ Model availability varies by AWS region:
 | Amazon Nova Pro | General-purpose, balanced performance/cost | All Connect regions |
 | Claude Haiku | Fast responses, simple queries, lowest cost | Select regions |
 
-Check the [Amazon Connect documentation](https://docs.aws.amazon.com/connect/latest/adminguide/) for current region-model availability matrices.
+The full per-Region model matrix (system-default models per prompt, and the models supported for custom prompts) is in [ai-prompts.md](ai-prompts.md). Check the [Amazon Connect documentation](https://docs.aws.amazon.com/connect/latest/adminguide/) for current availability.
 
 ### Model Upgrade Guide
 
@@ -462,7 +389,8 @@ Check the [Amazon Connect documentation](https://docs.aws.amazon.com/connect/lat
 
 ## Associating AI Agents with Flows
 
-Use a Lambda function to associate a specific AI agent version with a contact flow at runtime:
+- **Default behavior:** add the **Connect assistant** flow block (see below).
+- **Override behavior** (custom agents / per-session): create a Lambda and add it via the **AWS Lambda function** block at runtime:
 
 ```javascript
 // In your Lambda function invoked from the contact flow
@@ -483,6 +411,39 @@ exports.handler = async (event) => {
   return { success: true };
 };
 ```
+
+### Connect assistant flow block
+
+Associates a Connect assistant domain to a contact to enable real-time recommendations.
+
+- **Config:** the full ARN of the Connect assistant domain, and the **Orchestration AI agent** to use for Agent Assistance.
+- **Channels:** Voice, Chat, Task, Email (all Yes). *Outbound email hitting this block does nothing functionally but is still **charged** — guard with a `Check contact attributes` block.*
+- **Flow types:** Inbound, Customer Queue, Outbound whisper, Transfer to Agent, Transfer to Queue.
+- **Voice requires Contact Lens real-time** (`Set recording and analytics behavior` block, placement doesn't matter); chat does not.
+- **Branches:** Success, Error.
+- If you **customize** agents, use a Lambda + `AWS Lambda function` block instead of this block.
+
+---
+
+## AI Agent Sessions (custom data)
+
+Add custom data to an AI-agent session so prompts can reference it via `{{$.Custom.<KEY>}}`.
+
+1. Add the **Connect assistant** block (creates/associates the session for the contact).
+2. After it, add an **AWS Lambda function** block whose Lambda calls **`UpdateSessionData`**. The session ID comes from **`DescribeContact`** (using the `assistantId` from the Connect assistant block).
+
+```bash
+aws qconnect update-session-data --assistant-id <ASSISTANT_ID> --session-id <SESSION_ID> \
+  --data '[ { "key": "productId", "value": { "stringValue": "ABC-123" } } ]'
+```
+
+Reference it in a prompt as `{{$.Custom.productId}}`. If the value isn't in the session, it interpolates as an **empty string** — write the prompt to handle absence.
+
+---
+
+## Language / Locale
+
+Set the response language on an AI agent via its **Locale** (AI agent builder dropdown → Save → Publish, or the `locale` field in the agent config, e.g. `"locale": "es_ES"`). Locale is settable for Orchestration, Answer recommendation, Manual search, and the Email types; **Self-service is English only.** Connect AI agents support ~66 locale codes (e.g. `en_US`, `es_ES`, `fr_FR`, `de_DE`, `ja_JP`, `ko_KR`, `pt_BR`, `zh_CN`, `ar`, `hi_IN`, … through `zu_ZA`). If text isn't supported for the chosen language, that part isn't returned.
 
 ---
 
@@ -509,11 +470,13 @@ await client.send(new CreateContentAssociationCommand({
 
 This allows AI-generated recommendations to include "Launch Guide" actions that open the relevant step-by-step guide in the agent workspace.
 
+**Getting the IDs:** `knowledgeBaseId` via `aws qconnect list-knowledge-bases`; `contentId` via `aws qconnect list-contents --knowledge-base-id <id>`; the guide's `flowARN` via the flow designer (**About this flow → View ARN**) or `aws connect list-contact-flows --instance-id <id>`. **One** content association per content resource, but a guide can be associated with **multiple** content resources. Verify with `aws qconnect list-content-associations --knowledge-base-id <id> --content-id <id>`. Agents need **Connect AI agents – View** (to see/receive content; auto-recommendations require Contact Lens conversational analytics) and **Custom views – Access** (to see the guides).
+
 ---
 
 ## CloudWatch Monitoring
 
-Monitor AI agent performance with CloudWatch metrics:
+Monitor AI agent performance with CloudWatch. *(The metric names below are illustrative of what to track — confirm exact metric/namespace names in the CloudWatch console for your instance.)*
 
 | Metric | Description |
 |---|---|
@@ -568,13 +531,30 @@ Set up CloudWatch alarms for:
 
 ---
 
-## Legacy Self-Service
+## Legacy generative-AI self-service
 
-The legacy self-service approach used Amazon Lex bots with static intents and slot-filling logic. This approach:
+Before agentic self-service, generative-AI self-service returned control to the contact flow whenever a **custom tool** was selected (rather than continuing the conversation). It is **legacy** (no new features) — use agentic self-service for new builds.
 
-- Is **not receiving new features**
-- Requires manual intent/slot definition for every conversation path
-- Does not support multi-step reasoning or tool invocation
-- Cannot dynamically adapt to novel customer requests
+- Enable the `AMAZON.QinConnectIntent` intent in the Lex bot; add a **Connect assistant** block; add **Get customer input**; optionally a **Check contact attributes** block (Namespace = Lex, Key = Session attributes, Session Attribute Key = `Tool`) to branch on the selected tool.
+- **Default system tools:** `QUESTION`, `ESCALATION` (takes the Error branch of Get customer input), `CONVERSATION`, `COMPLETE`, `FOLLOW_UP_QUESTION`.
+- Tools here are defined in **YAML** (not JSON). Example:
 
-**Recommendation**: Use the agentic self-service approach for all new implementations. Migrate existing legacy bots when feasible. The agentic approach provides better customer experience, lower maintenance burden, and access to all new AI features.
+```yaml
+tools:
+- name: HANDOFF
+  description: Hand off the customer to a human agent with a summary of why they're calling.
+  input_schema:
+    type: object
+    properties:
+      message:
+        type: string
+        description: Restatement of what they're calling about; end by saying you're handing off to an agent.
+      summary:
+        type: string
+        description: Reasons the customer reached out, as <SummaryItems><Item>...</Item></SummaryItems>.
+    required:
+    - message
+    - summary
+```
+
+**Recommendation:** prefer agentic self-service (orchestrator + MCP tools) for new implementations — multi-step reasoning, in-conversation tool invocation, and access to new features.

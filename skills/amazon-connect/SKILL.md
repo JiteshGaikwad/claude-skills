@@ -83,7 +83,9 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [channels/webrtc-chime-sdk-implementation.md](channels/webrtc-chime-sdk-implementation.md) — Chime SDK client patterns, DTMF, multi-user
 
 ### AI & Automation
-- [ai/connect-ai-agents.md](ai/connect-ai-agents.md) — Agentic self-service, agent-assist, prompts, guardrails, MCP tools
+- [ai/connect-ai-agents.md](ai/connect-ai-agents.md) — Agent types, agentic self-service, MCP/Return-to-Control/Constant tools, message parsing, security profiles, Connect assistant block, sessions, locale, flow association
+- [ai/ai-prompts.md](ai/ai-prompts.md) — AI prompt types, MESSAGES/TEXT_COMPLETIONS YAML, variables, prompt caching, per-region models, CLI
+- [ai/ai-guardrails.md](ai/ai-guardrails.md) — Guardrail policies (content filters, denied topics, contextual grounding, word/PII filters), thresholds, full PII entity list, CLI
 - [ai/q-connect.md](ai/q-connect.md) — Amazon Q Connect, knowledge bases, assistants
 - [ai/lex-bots.md](ai/lex-bots.md) — Lex integration, conversational IVR
 - [ai/outbound-campaigns.md](ai/outbound-campaigns.md) — Predictive dialer, campaigns v1+v2
@@ -171,6 +173,8 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - "How do I invoke a Lambda function from a contact flow?" → Read `flows/lambda-integration.md`
 - "What real-time metrics can I track?" → Read `analytics/real-time-metrics.md`
 - "How do I set up agentic self-service with MCP tools?" → Read `ai/connect-ai-agents.md`
+- "How do I customize an AI prompt / which models or YAML format?" → Read `ai/ai-prompts.md`
+- "How do I configure AI guardrails (content filters, PII, denied topics)?" → Read `ai/ai-guardrails.md`
 - "Show me how to use GetMetricDataV2 with the JS SDK" → Read `api/sdk-patterns.md`
 - "What EventBridge events does Connect emit?" → Read `streaming/eventbridge-events.md`
 - "How do I build a 3P app for the agent workspace?" → Read `agent-experience/developer-guide.md`
