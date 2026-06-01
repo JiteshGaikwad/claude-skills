@@ -509,7 +509,12 @@ A contact was transferred if:
 | **External Conference** | initiator `CustomerHoldDuration` **<** `ExternalThirdPartyInteractionDuration`. |
 | **External Transfer** | initiator enters ACW before the external leg's `DisconnectTimestamp`; `TransferCompletedTimestamp` non-zero. |
 
-(AWS provides SQL/Python/JS reference implementations using a ~2-second `AgentInteractionDuration` threshold to distinguish consult vs conference.)
+**Leg linking:** on the **initial** leg, `NextContactId` (N) = the Contact ID of the last agent consulted; on a **consult** leg, `PreviousContactId` (P) = the Contact ID of the leg that called it. Multi-agent chaining patterns:
+- **A1→A2→A3→A4** (each invites the next): `PreviousContactId` is always the *immediately previous* agent.
+- **A1 invites A2, A3, A4**: `PreviousContactId` is always **A1**.
+- **A1 invites A2 & A3; A2 invites A4 & A5**: P for A2/A3 = A1; P for A4/A5 = A2.
+
+(AWS provides SQL/Python/JS reference implementations using a **2-second** `AgentInteractionDuration` threshold — `agent_interaction_duration_ms <= 2000` = CONSULT, `> 2000` = CONFERENCE; external uses `EXTERNAL_OUTBOUND` initiation + `CustomerHoldDuration` vs `ExternalThirdPartyInteractionDuration`.)
 
 ### Warm vs. Cold Transfer
 
