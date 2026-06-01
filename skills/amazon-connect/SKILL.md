@@ -40,7 +40,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 ### Core Infrastructure
 - [core/instances.md](core/instances.md) — Instance management, attributes, storage configs
 - [core/telephony.md](core/telephony.md) — Phone numbers (DID/toll-free, 110+ countries)
-- [core/security.md](core/security.md) — IAM policies, encryption, TBAC, security profiles, compliance, best practices
+- [core/security.md](core/security.md) — IAM policies + managed policies, per-feature KMS/CMK, data protection & retention, TBAC + tagging limits, auth profiles (IP/session), logging & monitoring, resilience, confused-deputy, compliance, best practices
 - [core/global-resiliency.md](core/global-resiliency.md) — Multi-region, traffic distribution
 - [core/network-requirements.md](core/network-requirements.md) — CCP network setup, firewall, ports, VDI, Direct Connect
 - [core/routing-and-queues.md](core/routing-and-queues.md) — Queue types, routing profiles, priority/delay, quick connects, transfers

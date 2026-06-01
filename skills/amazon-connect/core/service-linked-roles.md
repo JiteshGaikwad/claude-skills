@@ -58,10 +58,7 @@ Amazon Connect supports using SLRs in all Regions where the service is available
 
 ## Outbound Campaigns SLRs
 
-Amazon Connect outbound campaigns uses the following SLRs:
-
-- `AWSServiceRoleForConnectCampaigns`
-- `AWSServiceRoleForConnectCampaignsExecution`
+Amazon Connect outbound campaigns uses a single SLR: `AWSServiceRoleForConnectCampaigns`.
 
 ### `AWSServiceRoleForConnectCampaigns`
 
@@ -69,23 +66,13 @@ Amazon Connect outbound campaigns uses the following SLRs:
 |---|---|
 | Role name | `AWSServiceRoleForConnectCampaigns` |
 | Service principal (trust) | `connect-campaigns.amazonaws.com` |
-| Permissions policy | `AmazonConnectCampaignsServiceRolePolicy` |
+| Permissions policy | `AmazonConnectCampaignsServiceLinkedRolePolicy` |
 
-**Permissions granted:** allows Amazon Connect outbound campaigns to perform connect-campaigns related actions to manage outbound campaigns.
-
-### `AWSServiceRoleForConnectCampaignsExecution`
-
-| Property | Value |
-|---|---|
-| Role name | `AWSServiceRoleForConnectCampaignsExecution` |
-| Service principal (trust) | `connect-campaigns.amazonaws.com` |
-| Permissions policy | `AmazonConnectCampaignsExecutionRolePolicy` |
-
-**Permissions granted:** allows the service to perform actions such as starting and managing outbound campaign executions, and interacting with Amazon Connect and Amazon Pinpoint resources.
+**Permissions granted:** `connect-campaigns:ListCampaigns`; `connect:BatchPutContact`/`StopContact` across instances; per-instance `connect:StartOutboundVoiceContact, GetMetricData, GetCurrentMetricData, BatchPutContact, StopContact, GetMetricDataV2, DescribeContactFlow, SendOutboundEmail`; EventBridge rule management for `ConnectCampaignsRule*`; and `wisdom:GetMessageTemplate`/`RenderMessageTemplate` on `AmazonConnectCampaignsEnabled`-tagged resources.
 
 ### Creating
 
-You don't need to manually create these SLRs. When you enable outbound campaigns for your Amazon Connect instance, the service creates them for you.
+You don't need to manually create this SLR. It is created when you onboard outbound campaigns for your instance (`StartInstanceOnboardingJob`).
 
 ## Customer Profiles SLR: `AWSServiceRoleForProfile`
 
@@ -93,25 +80,31 @@ Allows Amazon Connect Customer Profiles to access AWS services and resources on 
 
 | Property | Value |
 |---|---|
-| Role name | `AWSServiceRoleForProfile` |
+| Role name | `AWSServiceRoleForProfile_{unique-id}` (one per domain) |
 | Service principal (trust) | `profile.amazonaws.com` |
+| Permissions policy | `CustomerProfilesServiceLinkedRolePolicy` |
 
-**Permissions granted:** allows Amazon Connect Customer Profiles to perform actions such as accessing customer profile data and integrating with other AWS services.
+**Permissions granted:** `cloudwatch:PutMetricData`; `iam:DeleteRole`; `connect-campaigns:PutProfileOutboundRequestBatch`; and `profile:BatchGetProfile, GetRecommender, GetCalculatedAttributeForProfile, GetProfileRecommendations`.
 
 > **Important — KMS enforcement edge case:** Before January 31, 2025, Amazon Connect Customer Profiles did **not** enforce the use of a customer managed AWS KMS key. After January 31, 2025, the service **requires** a customer managed KMS key for encrypting profile data. If you created a domain before this date, review your KMS key configuration to ensure compliance with the updated requirements.
 
-## Managed Synchronization SLR
+## Managed Synchronization SLR: `AWSServiceRoleForAmazonConnectSynchronization`
 
-Amazon Connect uses a service-linked role for managed synchronization to keep resources synchronized across Regions or services. The role allows Amazon Connect to synchronize configuration and resource data automatically.
+Backs **Amazon Connect Global Resiliency** — synchronizing configuration/resource data across replicated instances.
 
-(The source does not specify the role name, trust principal, or permissions policy for the managed synchronization SLR.)
+| Property | Value |
+|---|---|
+| Role name | `AWSServiceRoleForAmazonConnectSynchronization_{unique-id}` |
+| Service principal (trust) | `synchronization.connect.amazonaws.com` |
+| Permissions policy | `AmazonConnectSynchronizationServiceRolePolicy` |
+
+**Permissions granted:** broad `connect:Create*/Update*/Delete*/Describe*/Batch*/List*/Search*/Associate*/Disassociate*/Get*/Import*/Tag*/Untag*` plus `cloudwatch:PutMetricData`, with a large **deny-list** (no `Start*/Stop*/Resume*/Suspend*`, no `*Contact(s)`, no `*MetricData*`, no `CreateInstance/DeleteInstance/ReplicateInstance/GetFederationToken`, no phone-number claim/release, no traffic-distribution-group actions). Created by `ReplicateInstance`.
 
 ## Summary Table
 
-| Role | Trust principal | Used by |
-|---|---|---|
-| `AWSServiceRoleForAmazonConnect` | `connect.amazonaws.com` | Core Amazon Connect |
-| `AWSServiceRoleForConnectCampaigns` | `connect-campaigns.amazonaws.com` | Outbound campaigns |
-| `AWSServiceRoleForConnectCampaignsExecution` | `connect-campaigns.amazonaws.com` | Outbound campaign execution |
-| `AWSServiceRoleForProfile` | `profile.amazonaws.com` | Customer Profiles |
-| Managed synchronization SLR | (not specified in source) | Cross-Region/service resource sync |
+| Role | Trust principal | Policy | Used by |
+|---|---|---|---|
+| `AWSServiceRoleForAmazonConnect` | `connect.amazonaws.com` | `AmazonConnectServiceLinkedRolePolicy` | Core Amazon Connect |
+| `AWSServiceRoleForConnectCampaigns` | `connect-campaigns.amazonaws.com` | `AmazonConnectCampaignsServiceLinkedRolePolicy` | Outbound campaigns |
+| `AWSServiceRoleForProfile` | `profile.amazonaws.com` | `CustomerProfilesServiceLinkedRolePolicy` | Customer Profiles (one per domain) |
+| `AWSServiceRoleForAmazonConnectSynchronization` | `synchronization.connect.amazonaws.com` | `AmazonConnectSynchronizationServiceRolePolicy` | Global Resiliency / cross-Region sync |
