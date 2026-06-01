@@ -92,11 +92,26 @@ The **Transfer to Callback** option in `Transfer to queue` also supports callbac
 
 ---
 
+## Queued callbacks in real-time metrics
+
+- A callback is initiated when the `Transfer to queue` block runs (creating the callback in a callback queue). After any **Initial delay**, it goes into the queue and shows in the **In queue** column on the Real-time metrics page until an agent is available. (Initial delay shifts the contact between the **Scheduled** and **In queue** metrics — see "How Initial delay affects Scheduled and In queue metrics".)
+- When the callback connects to an agent, a **new contact record** is created; its **Initiation Timestamp** = when the callback was *initiated in the flow* (step 1), not when it connected.
+- **Tip:** to see just how many customers are waiting for a callback, route callbacks to a **callback-only queue**. There is currently **no way to see the phone numbers** of contacts waiting for callbacks.
+
+### Callback metrics
+
+| Metric | Meaning |
+|---|---|
+| **Callback contacts** | Count of contacts initiated from a queued callback (how many customers opted for a callback). |
+| **Callback contacts handled** | Callbacks initiated from a queued callback **and** handled by an agent (how many were answered). |
+| **Callback attempts** (`SUM_RETRY_CALLBACK_ATTEMPTS`) | Contacts where a callback was attempted but the customer didn't pick up. |
+
+---
+
 ## Learn more
 
-- Queued callbacks in real-time metrics
-- How **Initial delay** affects Scheduled vs. In-queue metrics
-- Failed callback attempts
-- Real-time metrics example for a queued-callback flow
+- How **Initial delay** affects Scheduled vs. In-queue metrics (`scheduled-vs-inqueue`)
+- Failed callback attempts (`failed-callback-attempt`)
+- Real-time metrics example for a queued-callback flow (`queued-callback-example`)
 
 (See also: `core/routing-and-queues.md` for queues/routing profiles, and `flows/blocks.md` for the `Set callback number` and `Transfer to queue` block references.)
