@@ -200,7 +200,26 @@ There is **no discrete "Supervisor alert" action** — real-time supervisor aler
 
 - Rules are created via **Analytics and optimization > Rules > Create a rule > Conversational analytics** in the Connect console.
 - Rules can also be managed programmatically via the Connect Rules APIs.
-- Requires **CallCenterManager** security profile or explicit **Rules** permissions.
+- Requires **CallCenterManager** security profile or explicit **Rules** permissions (generative-AI conditions also need **Rules - Generative AI**).
+
+### Feature limits (hard caps, not increasable)
+
+| Item | Limit |
+|---|---|
+| Contact Lens rules per event source (post-call, post-chat, real-time call, real-time chat, …) | **500** each |
+| Conditions in a rule | **20** |
+| Rules with a Natural-Language (generative-AI) condition | **100** post-call, **100** post-chat, **15** email |
+| Words/phrases entries — Exact match / Pattern match | **100** each |
+| Words/phrases — Semantic match (per card) | **4** |
+| Natural-Language semantic-match entries (per condition) | **1** |
+| Queue / Agent condition entries | **100** each |
+| Custom attribute conditions per rule | **5** |
+| Sentiment (time-period / entire-contact) / Interruptions entries | **5** each |
+| Response time threshold (post-chat only) | max **4 hours** |
+| Non-talk time threshold (post-call only) | max **5 hours** |
+| Custom vocabularies | **20** |
+
+Channel notes: Semantic match, Sentiment-entire-contact, and Interruptions are **not supported for real-time**; Response time is **post-chat only**; Non-talk time is **post-call only**.
 
 ---
 
@@ -305,7 +324,7 @@ Contact Lens automatically identifies key highlights. Issues, outcomes, and acti
 | **Action item** | `ActionItemsDetected` | Any follow-up actions mentioned during the conversation. Includes character offsets and text. |
 | **Post-contact summary** | `ContactSummary.PostContactSummary.Content` | AI-generated summary of the entire conversation. |
 
-These appear on the Contact details page and in the output JSON.
+A contact has **at most one issue, one outcome, and one action item** (some contacts have none — the CCP shows "There are no key highlights for this transcript"). Highlights also surface to agents in the CCP during/after the contact (see `key-highlights.html`). These appear on the Contact details page and in the output JSON.
 
 ---
 
@@ -479,13 +498,13 @@ The post-contact analytics JSON file includes the following top-level fields:
 | `Channel` | VOICE, CHAT, or EMAIL. |
 | `ContentMetadata.Output` | "Raw" for original file, "Redacted" for redacted file. |
 | `JobStatus` | COMPLETED or FAILED. |
-| `JobDetails.SkippedAnalysis` | Array of features that were skipped (e.g., categorization quota exceeded, safety guideline failures). |
+| `JobDetails.SkippedAnalysis[]` | Skipped features: `Feature` (e.g. `CATEGORIZATION`), `ReasonCode` (`QUOTA_EXCEEDED` \| `FAILED_SAFETY_GUIDELINES`), `SkippedEntities[]` (`CategoryName`, `RuleId`). |
 | `LanguageCode` | Language code used for analysis. |
 | `Participants` | Array of participants with `ParticipantId` and `ParticipantRole`. |
-| `Categories` | `MatchedCategories` array and `MatchedDetails` with points of interest (begin/end offsets). |
-| `ConversationCharacteristics` | Contains sentiment, interruptions, non-talk time, talk speed, talk time, and contact summary. |
-| `CustomModels` | Custom vocabulary references (`Type`, `Name`, `Id`). |
-| `Transcript` | Array of turns, each with content, timestamps, sentiment, loudness, and optional issues/outcomes/actions/redaction. |
+| `Categories` | `MatchedCategories[]` and `MatchedDetails.<CategoryName>.PointsOfInterest[].{BeginOffsetMillis, EndOffsetMillis}`. |
+| `ConversationCharacteristics` | `TotalConversationDurationMillis`; `Sentiment.{OverallSentiment.{AGENT,CUSTOMER}, SentimentByPeriod.QUARTER.{AGENT,CUSTOMER}[].{BeginOffsetMillis,EndOffsetMillis,Score}}` (overall score can be fractional, e.g. 3.1); `Interruptions.{TotalCount, TotalTimeMillis, InterruptionsByInterrupter.{AGENT,CUSTOMER}[].{BeginOffsetMillis,DurationMillis,EndOffsetMillis}}`; `NonTalkTime.{TotalTimeMillis, Instances[]}`; `TalkSpeed.DetailsByParticipant.{AGENT,CUSTOMER}.AverageWordsPerMinute`; `TalkTime.{TotalTimeMillis, DetailsByParticipant...}`; `ContactSummary.PostContactSummary.Content`. |
+| `CustomModels` | Custom vocabulary references (`Type: TRANSCRIPTION_VOCABULARY`, `Name`, `Id`). |
+| `Transcript[]` | Per turn: `BeginOffsetMillis`, `Content`, `EndOffsetMillis`, `Id`, `ParticipantId`, `Sentiment`, `LoudnessScore[]` (one value/second), per-turn `IssuesDetected[]` / `OutcomesDetected[]` / `ActionItemsDetected[]` (each `{CharacterOffsets.{BeginOffsetChar,EndOffsetChar}, Text}`), and `Redaction.RedactedTimestamps[]` on PII turns. |
 
 ### Redacted File Additions
 

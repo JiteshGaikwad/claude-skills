@@ -293,11 +293,27 @@ Returns a list of contact summaries with pagination token (`NextToken`). Each su
 
 ---
 
+## Search by Conversation Characteristics (Contact Lens)
+
+In the console, contacts analyzed by Contact Lens can be searched by **conversation characteristics** — filters marked **CL** in the UI. Gated by the **Search contacts by conversation characteristics** permission (or the **CallCenterManager** profile); keyword search needs **Search contacts by keywords**. The per-query **date range is limited to 8 weeks at a time** (separate from the 24-month retention).
+
+| Filter | Channel | Details |
+|---|---|---|
+| **Sentiment score** | voice + chat | The **average** score (−5…+5) of the customer's or agent's portion. For chat, sub-filter **With agent on the chat** vs **Without agent on the chat** (bot/prompts/queue time). Operators e.g. `<= -1` to find calls that ended negatively. |
+| **Sentiment shift** | voice + chat | Where sentiment changed — e.g. **begins ≤ -1 and ends ≥ +1**, for customer or agent. |
+| **Non-talk time** | calls only | Hold + silence > 3s; search by **duration or percentage** (e.g. `> 20%`). |
+| **Response time** | chats only | **Average** or **Maximum** agent/customer response time, `<=`/`>=` a value (max threshold 4 hours). |
+| **Contact category** | all | Select categories with **Match any / Match all / Match none** (Match none returns only Contact-Lens-analyzed contacts). |
+| **Keywords / phrases** | all | OpenSearch `standard` analyzer, **not case-sensitive**, quote phrases, comma-separate, **≤ 128 chars**; **Used by** Agent / Customer / System (chat Lex bot or prompt); **Match any** (OR) / **Match all** (AND). |
+
+---
+
 ## Limitations
 
 | Limit | Value |
 |---|---|
 | Search history depth | 24 months |
+| Conversation-characteristics search date range | 8 weeks per query |
 | Maximum results per API call | 100 |
 | Maximum contact attribute filters | 10 per search |
 | Transcript search | Requires Contact Lens to be enabled |
