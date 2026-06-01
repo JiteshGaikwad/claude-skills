@@ -87,6 +87,10 @@ Third-party applications support SSO federation setup for seamless authenticatio
 
 ### IAM Permissions for Registration
 
+Registration is **only supported in the default agent workspace — not when using a custom CCP.** The instance must also be using a **Service-Linked Role (SLR)**; integrations can only be added to SLR-enabled instances (instances created before October 2018 must migrate to an SLR first).
+
+**In addition to `AmazonConnect_FullAccess`**, a user registering an integration via the console needs:
+
 ```json
 {
   "Version": "2012-10-17",
@@ -95,22 +99,22 @@ Third-party applications support SSO federation setup for seamless authenticatio
       "Action": [
         "app-integrations:CreateApplication",
         "app-integrations:GetApplication",
-        "app-integrations:CreateApplicationAssociation",
-        "app-integrations:DeleteApplicationAssociation",
         "iam:GetRolePolicy",
         "iam:PutRolePolicy",
         "iam:DeleteRolePolicy"
       ],
-      "Resource": "arn:aws:app-integrations:{region}:{account}:application/*",
+      "Resource": "arn:aws:app-integrations:us-east-1:111122223333:application/*",
       "Effect": "Allow"
     }
   ]
 }
 ```
 
+> **Legacy integrations (created before Dec 15, 2023):** updating an integration's instance association can fail until you add `app-integrations:CreateApplicationAssociation` and `app-integrations:DeleteApplicationAssociation`. These belong in a **separate statement** scoped to `arn:aws:app-integrations:us-east-1:111122223333:application-association/*`, and the `iam:*RolePolicy` actions are scoped to the SLR role `arn:aws:iam::111122223333:role/aws-service-role/connect.amazonaws.com/AWSServiceRoleForAmazonConnect_*`.
+
 ### Instance Association
 
-- Applications must be associated with one or more Connect instances to be usable.
+- Applications must be associated with one or more Connect instances to be usable (association is optional at creation, but the app is unusable until associated).
 - For MCP servers, only the instance configured with the selected Gateway's Discovery URL can be selected.
 
 ### Deleting Integrations
@@ -171,15 +175,21 @@ Guides are no-code, flow-designed UI workflows that surface inside the agent wor
 - Can be invoked at the start of a contact, during handling, or during After Contact Work (ACW).
 - Support form inputs, dropdowns, radio buttons, and conditional branching.
 - Can read and write contact attributes for dynamic content.
-- Support PII redaction for sensitive fields via Contact Lens integration.
-- Default ACW guides auto-launch when the agent enters ACW state.
+- Support PII redaction in the contact-record transcript via Contact Lens (applied after disconnect).
+- A guide can be surfaced after the contact ends (during ACW) by setting the `DisconnectFlowForAgentUI` attribute before the contact ends.
 - When a guide runs, a separate background chat contact is created (agents are not aware of this).
 
 See `step-by-step-guides.md` for full details.
 
 ---
 
-## 7. Customer Profile Tab
+## 7. Voice ID (Voice Authentication)
+
+The workspace surfaces machine-learning-powered voice authentication via **Amazon Connect Voice ID**, which verifies a caller's identity from their voice during a call. (This skill does not cover Voice ID / biometrics configuration in depth — it is listed here because it is one of the eight labeled parts of the agent workspace.)
+
+---
+
+## 8. Customer Profile Tab
 
 The Customer Profile tab displays a unified customer view assembled from multiple data sources:
 
@@ -189,12 +199,6 @@ The Customer Profile tab displays a unified customer view assembled from multipl
 - Identity resolution uses ML to merge duplicate profiles across sources.
 - Agents can edit profile fields directly from the workspace.
 - Contact flows can auto-populate the profile tab based on caller ID or IVR-collected data.
-
----
-
-## 8. (Reserved)
-
-Biometrics features are intentionally excluded from this skill.
 
 ---
 

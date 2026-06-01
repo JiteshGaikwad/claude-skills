@@ -324,7 +324,10 @@ These values are determined by which components the agent interacted with.
 | Permission | Who | Purpose |
 |---|---|---|
 | Agent Applications - Custom views - All | Agents | See step-by-step guides in workspace |
-| Channels and flows - Views | Managers/analysts | Create step-by-step guides |
+| Channels and flows - Views | Managers/analysts | Configure step-by-step guides in flows |
+| Flows - Edit, Create | Managers/analysts | Create the flows that guides are built in (guides are created using flows) |
+
+**Service quota:** guide workflows run as **chat contacts**, so increase the **concurrent active chats per instance** quota by the number of concurrent contacts you expect to use guides. Note: Disconnect-flow workflows count as their own contacts — if you set both a `DefaultFlowID` and a `DisconnectFlowID`, they count as **two** active contacts.
 
 ---
 
@@ -332,18 +335,20 @@ These values are determined by which components the agent interacted with.
 
 ### At Start of Contact
 
-Attach the guide flow as the **agent event flow** on the queue or routing profile. When a contact arrives, the guide launches automatically in the workspace:
+Use a **Set event flow** block configured with the **`DefaultFlowForAgentUI`** event hook (UI label: **Default flow for Agent UI**) to choose which guide flow to send to the agent.
 
-1. Agent accepts the contact.
-2. The guide's first Show view block renders immediately.
+1. Add a **Set event flow** block to your flow and set the **DefaultFlowForAgentUI** event hook to the guide flow's ID.
+2. The guide starts **as soon as the contact is offered to the agent** — it does **not** wait for the agent to accept.
 3. The agent follows the screens step by step.
+
+To pick the guide dynamically, branch with a **Check attribute** block (on IVR responses, queue name, customer info, etc.) and set the flow ID via **Set event flow** accordingly.
 
 ### During After Contact Work (ACW)
 
-Use **default ACW guides** to auto-launch a guide when the agent enters ACW state:
+Surface a guide after the contact ends (during ACW) by setting the **`DisconnectFlowForAgentUI`** contact attribute:
 
 1. Create a flow with Show view blocks for disposition capture, notes, follow-up scheduling.
-2. Set the `DisconnectFlowForAgentUI` custom attribute in the contact flow before the contact ends.
+2. Set the `DisconnectFlowForAgentUI` attribute in the contact flow **before the contact ends** (as long as it's set before the contact ends, the agent UI surfaces this form after the contact ends).
 3. When the contact disconnects and the agent enters ACW, the guide launches automatically.
 4. The agent completes the guide and then clears the contact.
 
@@ -357,17 +362,18 @@ Agents can manually invoke guides from the workspace if the guide is exposed as 
 
 ## PII Redaction in Guides
 
-By default, any information passed through a guide is included in the contact record transcript. To prevent PII from appearing:
+By default, any information passed through a guide is included in the **contact record transcript**. To prevent PII from appearing there:
 
 1. Use the **Set recording and analytics behavior** block in the guide flow.
-2. Enable **Contact Lens** on the flow.
-3. Enable **redaction of sensitive data** in Contact Lens configuration.
-4. Enable **This view has sensitive data** on the Show view block.
+2. **Enable Contact Lens** (conversational analytics) on that block.
+3. Enable the **redaction of sensitive data**.
 
-When enabled:
-- Sensitive field values are not recorded in transcripts or contact records.
-- Data is not visible to agents by default.
-- Flow logging should be disabled (via Set Logging Behavior) to prevent PII in flow logs.
+Notes:
+- Redaction is performed by Contact Lens (ML/NLU) and is applied **after the call disconnects** — it is **not** real-time.
+- It acts on the **contact record transcript / recording**, not the live guide UI.
+- It **may not identify and remove all instances** of sensitive data, and does **not** meet HIPAA de-identification requirements.
+
+> This is a separate control from the Show view block's **"This view has sensitive data"** toggle (see [View types / sensitive data handling](#show-view-block-configuration)), which keeps a view's input/output out of transcripts and contact records. Use whichever fits — they are independent.
 
 ---
 
@@ -425,18 +431,24 @@ To enforce disposition capture:
 
 ## Deploying Guides in Chats
 
-Guides work across channels. For chat contacts:
+You can present the **same guide you built for agents to the customer inside the chat widget**, creating an interactive **self-service** experience that gathers context and then transfers the customer (with that context) to an agent.
 
-- Show view blocks render as interactive forms in the agent workspace (not in the customer's chat window).
-- Show view blocks can also render directly in the customer's chat UI for customer-facing guides (e.g., payment collection, address update).
-- The agent fills out the guide while simultaneously handling the chat conversation.
-- Guide data can be used to populate canned responses or trigger actions in the chat flow.
+**Setup:**
 
-Chat-specific considerations:
+1. First **enable and configure guides for agents** (confirm they pop when a contact is reserved for an agent).
+2. In the **chat flow**, invoke views with the **Show View** block exactly as you would for an agent (e.g. run through a couple of views before transferring the chat to an agent).
+3. Create a **hosted chat widget** from the admin page and set its **chat flow** to the one you created. This generates the widget `<script>` snippet.
+4. In that snippet, extend the `supportedMessagingContentTypes` array to include the interactive message types so guides render in chat:
+   ```js
+   amazon_connect('supportedMessagingContentTypes', [
+     'text/plain',
+     'application/vnd.amazonaws.connect.message.interactive',
+     'application/vnd.amazonaws.connect.message.interactive.response'
+   ]);
+   ```
+5. Add `{{your-website-url}}/views/renderer/` to your **URL allow-list** so guides work within chat. (If you use a CSP for the chat widget, you'll already have the CloudFront URL such as `https://{{unique-id}}.cloudfront.net/amazon-connect-chat-interface.js`.)
 
-- Guides can be triggered per chat message event or at chat start.
-- Multi-chat concurrency means an agent may have multiple guides open simultaneously (one per chat contact).
-- Customer-facing chat guides support sensitive data collection (credit card, PII) with data not visible to agents.
+You can also use guides in chat with a **custom-built communications widget** — see the `amazon-connect/amazon-connect-chat-interface` project on GitHub.
 
 ---
 
@@ -529,19 +541,19 @@ Quick responses appear in the agent workspace as a searchable panel during chat 
 
 ---
 
-## Default ACW Guides
+## After-Contact (ACW) Guides
 
-Default ACW guides auto-launch when the agent enters After Contact Work state:
+Surface a guide automatically when the agent enters After Contact Work, by setting the `DisconnectFlowForAgentUI` attribute:
 
 ### Setup
 
 1. Build a contact flow with Show view blocks for post-contact activities (disposition, notes, follow-up).
-2. Set the `DisconnectFlowForAgentUI` custom attribute in the inbound contact flow before the contact ends.
+2. Set the `DisconnectFlowForAgentUI` attribute in the inbound contact flow **before the contact ends**.
 3. When the contact disconnects, the agent transitions to ACW and the guide launches automatically.
 
 ### Behavior
 
-- The default ACW guide launches automatically in the workspace -- no agent action required.
+- The ACW guide launches automatically in the workspace -- no agent action required.
 - The agent completes the guide steps.
 - On completion, the contact clears (or the agent manually clears if ACW timeout has not expired).
 

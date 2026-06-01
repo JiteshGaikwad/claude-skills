@@ -61,23 +61,24 @@ Third-party applications are custom web applications loaded inside the agent wor
 
 ### Prerequisites — IAM Role
 
-An IAM role with the following permissions is required to register and manage third-party applications:
+To register/manage third-party applications via the console, a user needs **`AmazonConnect_FullAccess`** plus these `app-integrations` / `iam` permissions (approved origins are an integration field, not a separate API):
 
 - `app-integrations:CreateApplication`
-- `connect:AssociateApprovedOrigin`
+- `app-integrations:GetApplication`
+- `iam:GetRolePolicy`, `iam:PutRolePolicy`, `iam:DeleteRolePolicy`
 
-In the AWS console, register your application under the Amazon Connect admin console > "Third-party applications."
+(See `agent-experience/workspace.md` for the full policy JSON, resource scoping, and the SLR requirement.) In the AWS console, register your application under the Amazon Connect admin console > **Integrations** > **Add integration**.
 
 ### Prerequisites
 
 - For staging/production: HTTPS-hosted web application (required for normal workspace embedding).
 - For local testing: `http://localhost:{port}` is supported as an Access URL/approved origin for validating the integration.
-- Application registered in the Amazon Connect console under "Third-party applications."
+- Application registered in the Amazon Connect console under **Integrations**.
 - `@amazon-connect/sdk` packages installed.
 
 ### Create Your Application
 
-1. Go to the Amazon Connect admin console and navigate to "Third-party applications."
+1. Go to the Amazon Connect admin console and navigate to **Integrations** > **Add integration**.
 2. Register your app: provide a name, namespace, and origin URL (must be HTTPS).
 3. Configure permissions: select which agent data the app can access (contacts, agent state, etc.).
 4. Associate the app with a security profile to control which agents see it in their workspace.
@@ -329,8 +330,8 @@ Third-party services are background processes that run for the duration of the a
 
 ### Service Setup
 
-1. In the Amazon Connect console, navigate to "Third-party applications."
-2. Create a new application with the "Service" type (not "Application").
+1. In the Amazon Connect console, navigate to **Integrations** > **Add integration**.
+2. Create a new application with the "Service" integration type (not "standard application").
 3. Provide the HTTPS URL of the service endpoint.
 4. The service URL is loaded in a hidden iframe -- no UI is rendered.
 5. The service initializes via `AmazonConnectService.init()` (from `@amazon-connect/app`) and subscribes to events. It must complete the initial handshake within its configured `InitializationTimeout` (in milliseconds), or the agent workspace will fail to load. All initialization must complete within the overall 30-second window.
