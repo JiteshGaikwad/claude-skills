@@ -192,21 +192,24 @@ All connecting time metrics available since Dec 29, 2023.
 
 ## Category 10: Conversational Analytics Metrics (Contact Lens)
 
-These metrics require Contact Lens to be enabled.
+Require Contact Lens conversational analytics; available on **both Real-time and Historical** reports. (Non-talk time = combined hold time + periods of silence > 3 seconds.)
 
 | Metric | API Name | Unit | Description |
 |---|---|---|---|
-| Agent Talk Time Percent | `PERCENT_TALK_TIME_AGENT` | PERCENT | Talk time by agent as percent of total conversation duration. Voice only. |
+| Agent Talk Time Percent | `PERCENT_TALK_TIME_AGENT` | PERCENT | Agent talk time as percent of total conversation duration. Voice only. |
 | Avg Agent Talk Time | `AVG_TALK_TIME_AGENT` | SECONDS | Average time spent talking by agent. |
-| Customer Talk Time Percent | `PERCENT_TALK_TIME_CUSTOMER` | PERCENT | Talk time by customer as percent of total conversation duration. |
+| Customer Talk Time Percent | `PERCENT_TALK_TIME_CUSTOMER` | PERCENT | Customer talk time as percent of total conversation duration. |
 | Avg Customer Talk Time | `AVG_TALK_TIME_CUSTOMER` | SECONDS | Average time spent talking by customer. |
-| Non-Talk Time Percent | `AVG_NON_TALK_TIME_PERCENT` | PERCENT | Percentage of conversation with silence. |
+| Avg Talk Time | `AVG_TALK_TIME` | SECONDS | Average talk time across customer **or** agent during a voice contact. |
+| Talk Time Percent | `PERCENT_TALK_TIME` | PERCENT | Combined talk time (agent+customer) as percent of total conversation duration. |
+| Avg Non-Talk Time | `AVG_NON_TALK_TIME` | SECONDS | Average total non-talk time (hold + silence >3s) per contact. |
+| Non-Talk Time Percent | `PERCENT_NON_TALK_TIME` | PERCENT | Non-talk time as percent of total conversation duration. |
 | Avg Agent Greeting Time | `AVG_GREETING_TIME_AGENT` | SECONDS | Average first response time of agents on chat. |
 | Avg Agent Interruptions | `AVG_INTERRUPTIONS_AGENT` | COUNT | Average number of times agent interrupted the customer. |
 | Avg Agent Interruption Time | `AVG_INTERRUPTION_TIME_AGENT` | SECONDS | Average total agent interruption time while talking. |
-| Avg Conversation Duration | `AVG_CONVERSATION_DURATION` | SECONDS | Average duration of actual conversation (excludes hold, IVR). |
-| Avg Customer Sentiment | `AVG_CUSTOMER_SENTIMENT` | SCORE | Average customer sentiment score (-5 to +5). |
-| Avg Agent Sentiment | `AVG_AGENT_SENTIMENT` | SCORE | Average agent sentiment score (-5 to +5). |
+| Avg Conversation Duration | `AVG_CONVERSATION_DURATION` | SECONDS | Average voice conversation duration with agents (start of conversation to last word spoken by either party). |
+| Avg Customer Sentiment | `AVG_CUSTOMER_SENTIMENT` | SCORE | Average customer sentiment score (-5 to +5). *(Documented in the metrics glossary, not the contact-lens-metrics page.)* |
+| Avg Agent Sentiment | `AVG_AGENT_SENTIMENT` | SCORE | Average agent sentiment score (-5 to +5). *(As above.)* |
 
 ---
 
@@ -232,6 +235,10 @@ These metrics require Contact Lens to be enabled.
 |---|---|---|---|
 | Avg Bot Conversation Time | `AVG_BOT_CONVERSATION_TIME` | SECONDS | Average duration of completed bot conversations. Can filter by `BOT_CONVERSATION_OUTCOME_TYPE`. Available since Dec 2, 2024. |
 | Avg Bot Conversation Turns | `AVG_BOT_CONVERSATION_TURNS` | DOUBLE | Average number of turns in bot conversation (1 turn = request + response). Can filter by `BOT_CONVERSATION_OUTCOME_TYPE`. Available since Dec 2, 2024. |
+| Bot Conversations Completed | `BOT_CONVERSATIONS_COMPLETED` | COUNT | Count of completed bot conversations. Filter `BOT_CONVERSATION_OUTCOME_TYPE`: SUCCESS/FAILED/DROPPED. Since Dec 2, 2024. |
+| Bot Intents Completed | `BOT_INTENTS_COMPLETED` | COUNT | Count of completed intents. Filter `BOT_INTENT_OUTCOME_TYPE`: SUCCESS/FAILED/SWITCHED/DROPPED. Since Dec 2, 2024. |
+| Percent Bot Conversations Outcome | `PERCENT_BOT_CONVERSATIONS_OUTCOME` | PERCENT | % of completed conversations ending in the filtered `BOT_CONVERSATION_OUTCOME_TYPE`. |
+| Percent Bot Intents Outcome | `PERCENT_BOT_INTENTS_OUTCOME` | PERCENT | % of intents ending in the filtered `BOT_INTENT_OUTCOME_TYPE`. |
 | Avg Flow Time | `AVG_FLOW_TIME` | SECONDS | Average time contacts spent in contact flows (IVR). |
 | Contacts Flow Out | `CONTACTS_FLOW_OUT` | COUNT | Contacts that exited a flow without being queued or handled. |
 
@@ -310,10 +317,13 @@ Metrics from Amazon Connect Cases.
 
 | Metric | API Name | Unit | Description |
 |---|---|---|---|
-| Avg Case Resolution Time | `AVG_CASE_RESOLUTION_TIME` | SECONDS | Average time from case creation to resolution. |
-| Avg Contacts Per Case | `AVG_CASE_RELATED_CONTACTS` | COUNT | Average number of contacts associated with each case. |
-| Cases Created | `CASES_CREATED` | COUNT | Number of cases created in the period. |
-| Cases Resolved | `CASES_RESOLVED` | COUNT | Number of cases resolved in the period. |
+| Avg Case Resolution Time | `AVG_CASE_RESOLUTION_TIME` | String (hh:mm:ss) | Average time to resolve a case in the interval. |
+| Avg Contacts Per Case | `AVG_CASE_RELATED_CONTACTS` | String | Average contacts (call/chat/task/email) for cases created in the interval. |
+| Cases Created | `CASES_CREATED` | Integer | Number of cases created (SUM; filter by template/status). Since Jan 26, 2024. |
+| Cases Resolved | `RESOLVED_CASE_ACTIONS` | Integer | Number of times cases were resolved. Since Jan 26, 2024. |
+| Cases Reopened | `REOPENED_CASE_ACTIONS` | Integer | Number of times cases were reopened. Since Jan 26, 2024. |
+| Cases Resolved on First Contact | `PERCENT_CASES_FIRST_CONTACT_RESOLVED` | PERCENT (0–100) | % of cases resolved on the first contact (call/chat/email only). AVG statistic; closed cases only. Since Dec 4, 2023. |
+| Current Cases | `CURRENT_CASES` | Integer | Point-in-time total cases in a domain (limit query window to ~5 min for accuracy). Since Jan 26, 2024. |
 
 ---
 
@@ -321,8 +331,12 @@ Metrics from Amazon Connect Cases.
 
 | Metric | API Name | Unit | Description |
 |---|---|---|---|
-| Automatic Fails Percent | `AUTOMATIC_FAILS_PERCENT` | PERCENT | Percentage of evaluations where the agent automatically failed due to a critical section. Excludes calibration evaluations. Automatic fail cascades up (question -> section -> form). Requires at least one filter: queues, routing profiles, agents, or hierarchy groups. Available since Jan 10, 2025. |
-| Average Evaluation Score | `AVG_EVALUATION_SCORE` | PERCENT | Average evaluation score across all completed evaluations. |
+| Automatic Fails Percent | (no API id; dashboard/admin only) | PERCENT | % of evaluations with automatic fails. Excludes calibration. Automatic fail cascades up (question → section → form). Since Jan 10, 2025. |
+| Average Evaluation Score | `AVG_EVALUATION_SCORE` | PERCENT | Average score across submitted evaluations (form/section/question level per grouping). Excludes calibration. |
+| Average Weighted Evaluation Score | `AVG_WEIGHTED_EVALUATION_SCORE` | PERCENT | Average weighted score (weights per the evaluation-form version used). Excludes calibration. |
+| Evaluations Performed | `EVALUATIONS_PERFORMED` | Integer | Count of evaluations with status Submitted (excludes calibration). |
+
+All Category 19 metrics are historical, require at least one filter (queues/routing profiles/agents/hierarchy groups), and are based on the submitted-evaluation timestamp (since Jan 10, 2025).
 
 ---
 
@@ -330,8 +344,37 @@ Metrics from Amazon Connect Cases.
 
 | Metric | API Name | Unit | Description |
 |---|---|---|---|
-| Adherence | `AGENT_SCHEDULE_ADHERENCE` | PERCENT | Percentage of time agent correctly follows their schedule. When schedule changes, adherence is re-calculated up to 30 days in the past. Available in regions with Forecasting, Capacity Planning, and Scheduling. |
-| Adherent Time | `AGENT_ADHERENT_TIME` | SECONDS | Total time agent adhered to their schedule. |
+Available on **both Real-time and Historical** reports, only in Regions where Forecasting, capacity planning, and scheduling is available.
+
+| Adherence | `AGENT_SCHEDULE_ADHERENCE` | PERCENT (0–100) | % of time agent correctly follows their schedule. A schedule change re-calculates adherence up to 30 days in the past from the current date. |
+| Adherent Time | `AGENT_ADHERENT_TIME` | String | Total time agent adhered to their schedule. |
+| Non-Adherent Time | `AGENT_NON_ADHERENT_TIME` | String (hh:mm:ss) | Total time agent did not adhere to their schedule. |
+| Scheduled Time | `AGENT_SCHEDULED_TIME` | String | Total time agent was scheduled (productive or non-productive) with Adherence = Yes for those shifts. |
+| Using thresholds | (status indicator, no API id) | — | Whether an agent is operating within configured adherence thresholds vs exact scheduled times. |
+| Threshold duration | (no API id) | — | Time an agent has been operating within their configured threshold window. |
+
+---
+
+## Category 21: Outbound Campaign Metrics
+
+All historical (via `GetMetricDataV2` + the Outbound campaigns performance dashboard). Availability varies by **delivery mode** (agent-assisted voice / automated voice / email / SMS / telephony), whether **answering machine detection (AMD)** is enabled, and whether the campaign is **customer-segment** vs **event-triggered**. `X` (for the abandoned-after-X metrics) is 1–604800 seconds.
+
+| Metric | API Name | Unit | Description |
+|---|---|---|---|
+| Average dials per minute | `AVG_DIALS_PER_MINUTE` | Double | Avg outbound dials/minute (agent-assisted + automated voice). Since 2024-06-25. |
+| Average wait time after customer connection | `AVG_WAIT_TIME_AFTER_CUSTOMER_CONNECTION` | String (hh:mm:ss) | Avg customer wait after answering, before agent connect (voice modes). |
+| Campaign contacts abandoned after X | `CAMPAIGN_CONTACTS_ABANDONED_AFTER_X` | Integer | Calls connected to a live customer but not connected to an agent within X sec (requires AMD). |
+| Campaign contacts abandoned after X rate | `CAMPAIGN_CONTACTS_ABANDONED_AFTER_X_RATE` | Percent | The above as a % of contacts connected to a live customer (requires AMD). |
+| Campaign interactions | `CAMPAIGN_INTERACTIONS` | Integer | Interactions after a successful delivery (Open/Click/Complaint) — email mode. Since 2024-11-06. |
+| Campaign progress rate | `CAMPAIGN_PROGRESS_RATE` | Percent | (Recipients attempted / Recipients targeted) × 100. Customer-segment campaigns only. Since 2025-04-30. |
+| Campaign send attempts | `CAMPAIGN_SEND_ATTEMPTS` | Integer | Send requests issued (email/SMS/telephony). Since 2024-11-06. |
+| Campaign send exclusions | `CAMPAIGN_SEND_EXCLUSIONS` | Integer | Send attempts excluded during execution (e.g. MISSING_TIMEZONE, MISSING_CHANNEL). Since 2025-04-30. |
+| Delivery attempts | `DELIVERY_ATTEMPTS` | Integer | Count of delivery outcomes (dialer contact outcomes, or email/SMS sent to Connect for delivery). |
+| Delivery attempt disposition rate | `DELIVERY_ATTEMPT_DISPOSITION_RATE` | Percent | % of each delivery outcome (AMD/disconnect classification for voice; email/SMS outcomes). |
+| Human answered | `HUMAN_ANSWERED_CALLS` | Integer | Calls connected to a live customer (requires AMD; voice modes). |
+| Recipients attempted | `RECIPIENTS_ATTEMPTED` | Integer | Approx. count of recipients attempted (customer-segment only). Since 2025-04-30. |
+| Recipients interacted | `RECIPIENTS_INTERACTED` | Integer | Approx. recipients who interacted after delivery (Open/Click/Complaint; customer-segment only). |
+| Recipients targeted | `RECIPIENTS_TARGETED` | Integer | Count of recipients targeted (customer-segment only). Since 2025-04-30. |
 
 ---
 
