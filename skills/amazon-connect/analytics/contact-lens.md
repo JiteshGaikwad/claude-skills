@@ -22,9 +22,11 @@ Contact Lens is enabled per contact flow using the **Set recording and analytics
 
 | Channel | Real-Time | Post-Contact | Notes |
 |---|---|---|---|
-| **Voice** | Yes | Yes | Real-time requires explicit opt-in in the flow block. |
-| **Chat** | Yes | Yes | Each processed chat message is billed even if not all features apply. |
-| **Email** | N/A | Yes | Email is asynchronous; analysis initiates as soon as the Set recording block is hit. No real-time vs post-contact distinction. |
+| **Voice** | Yes | Yes | Only voice has a **Post-call vs Real-time** choice in the block. Choosing **Real-time** yields *both* real-time and post-call. Requires Call recording = **Agent and Customer**. |
+| **Chat** | Yes | Yes | Enabling chat analytics gives **both** real-time and post-chat automatically (no separate toggle). Each processed message is billed even if not all features apply. |
+| **Email** | N/A | Yes | Asynchronous — no real-time/post distinction. Enabled via the **Set recording, analytics and processing behavior** block (Channel = Email), placed before routing; optional **Contact summary** under Contact Lens Generative AI capabilities. |
+
+> **Enable steps:** turn on Contact Lens for the instance (console → Analytics tools → Enable Contact Lens), then add the block to your flow(s) — repeat in transfer flows. Instances created before October 2018 need extra SLR config for real-time. The **Set recording and analytics behavior** block is superseded by **Set recording, analytics and processing behavior** for new flows (and the old block takes the Error branch for Email).
 
 ---
 
@@ -42,10 +44,12 @@ Real-time Contact Lens analyzes conversations as they happen, enabling superviso
 
 ### APIs
 
-| Method | Description |
-|---|---|
-| **ListRealtimeContactAnalysisSegmentsV2** | Stream real-time transcript and analytics segments for an in-progress contact. |
-| **Kinesis** | Real-time analytics segments can be streamed to Kinesis for custom processing. |
+The real-time segment API is **split by channel** — there is no single API for both, and **no `Get…V2`** operation exists:
+
+| Method | Channel | Description |
+|---|---|---|
+| **`ListRealtimeContactAnalysisSegments`** (service `connect-contact-lens`) | **VOICE only** | Lists analysis segments for a real-time voice session. Voice data is **retained 24 hours** — call within that window. Returns `Segments[]` of `Transcript`, `Categories`, or `PostContactSummary`. |
+| **`ListRealtimeContactAnalysisSegmentsV2`** (service `connect`) | **CHAT only** | Lists segments for a real-time chat session. **Raises `InvalidRequestException` if used for VOICE.** Body requires `OutputType` (`Raw`\|`Redacted`) and `SegmentTypes` (`Transcript`\|`Categories`\|`Issues`\|`Event`\|`Attachments`\|`PostContactSummary`, max 6); returns `Status` (`IN_PROGRESS`\|`FAILED`\|`COMPLETED`). Requesting `Raw` when the flow set `RedactedOnly` raises `OutputTypeNotFoundException`. |
 
 ---
 
@@ -59,11 +63,13 @@ Analytics files are written to the S3 bucket configured in the instance storage 
 
 ### S3 Path Structure
 
-| Channel | Path Pattern |
-|---|---|
-| **Voice** | `connect-{instanceARN}/Analysis/Voice/` |
-| **Chat** | `connect-{instanceARN}/Analysis/Chat/` |
-| **Email** | `connect-{instanceARN}/Analysis/Email/` |
+Analysis JSON is written under the configured bucket, **date-partitioned** `YYYY/MM/DD`, with the filename `{contactId}_analysis_{timestamp}.json`:
+
+- Voice: `connect-instance-bucket/Analysis/Voice/2020/02/04/{contactId}_analysis_2020-02-04T21:14:16Z.json`
+- Chat: `connect-instance-bucket/Analysis/Chat/2020/02/04/{contactId}_analysis_...json`
+- Email: `connect-instance-bucket/Analysis/Email/2026/03/10/{contactId}_analysis_...json`
+
+**Redacted** output lives under a `Redacted/` sub-prefix: `.../Analysis/Voice/Redacted/2020/02/04/{contactId}_analysis_redacted_...json`, and redacted audio is `..._call_recording_redacted_...wav`. To delete a recording you must delete **both** the redacted and unredacted files.
 
 ---
 
@@ -75,8 +81,9 @@ Contact Lens assigns sentiment at multiple granularities:
 |---|---|
 | **Per-turn sentiment** | Each utterance/message is classified as `POSITIVE`, `NEGATIVE`, or `NEUTRAL`. |
 | **Overall sentiment** | A numeric score from **-5** (most negative) to **+5** (most positive) computed per participant (agent and customer separately). |
-| **Sentiment by period** | The conversation is divided into quarters, and a score is computed for each quarter per participant. |
-| **Sentiment shift** | Indicates whether sentiment improved, worsened, or remained stable between the beginning and end of the conversation. Useful for identifying whether the agent successfully de-escalated. |
+| **Sentiment by period** | A score is computed for each **period/portion** of the conversation per participant (the docs say "each period of the call", not a fixed number of quarters). |
+| **Sentiment trend vs. distribution** | Two distinct graphs: **trend** shows how sentiment changes as the contact progresses; **distribution** counts the turns/messages that were Positive, Neutral, and Negative across the whole contact. |
+| **Sentiment shift** | A search/filter construct identifying where sentiment changed (e.g. begins ≤ -1 and ends ≥ +1), for customer or agent. |
 
 ### How Scores Are Determined
 
@@ -86,16 +93,6 @@ Contact Lens considers two factors for each participant turn to assign a score t
 2. **Sentiment streaks** — Consecutive turns with the same sentiment weight the score more heavily.
 
 The overall sentiment score is the average of the scores assigned during each portion of the call.
-
-### Sentiment Score Interpretation
-
-| Score Range | Meaning |
-|---|---|
-| +3 to +5 | Strongly positive |
-| +1 to +2 | Mildly positive |
-| 0 | Neutral |
-| -1 to -2 | Mildly negative |
-| -3 to -5 | Strongly negative |
 
 ### Investigation Patterns
 
@@ -111,7 +108,7 @@ Contact Lens produces high-accuracy transcripts for voice interactions using Ama
 
 ### Features
 
-- **Speaker identification** — Each segment is labeled as `AGENT` or `CUSTOMER`. For multi-party calls (conferences), additional participants are identified via `ParticipantId` and `ParticipantRole`.
+- **Speaker identification** — Each segment is labeled `AGENT` or `CUSTOMER`. Contact Lens supports calls with **up to 2 participants**; with more than two parties, transcription/analytics quality degrades and AWS recommends disabling analytics for multi-party/third-party calls.
 - **Timestamps** — Every segment includes `BeginOffsetMillis` and `EndOffsetMillis` relative to the start of the recording.
 - **Confidence scores** — Word-level confidence scores for transcript accuracy.
 - **Loudness scores** — Per-second loudness scores for each turn (array of numeric values, one per second of the turn).
@@ -149,13 +146,13 @@ Categories allow you to automatically classify contacts based on rules you defin
 
 | Rule Type | Description |
 |---|---|
-| **Keywords/phrases (Exact Match)** | Match exact words or phrases spoken by agent or customer. |
-| **Keywords/phrases (Pattern Match)** | Match patterns that may be less than 100% exact. Supports distance constraints (e.g., "credit" NOT within 1 word of "card"). |
-| **Keywords/phrases (Semantic Match)** | Match based on semantic meaning. **Post-contact only** — not available for real-time. |
-| **Sentiment** | Match based on sentiment of a turn or overall score. |
-| **Interruptions** | Match when interruption count exceeds a threshold. |
-| **Non-talk time** | Match when silence duration exceeds a threshold. |
-| **Composite** | Combine multiple conditions with AND/OR/NOT logic. |
+| **Words or phrases — Exact Match** | Exact word/phrase (singular or plural), not case-sensitive. Enter manually or **Import from word collection** (user collections: full CRUD; system collections: predefined). |
+| **Words or phrases — Pattern Match** | `*` wildcard for related words; **List of values** (interchangeable); **Number** `[0-9]`; **Proximity** (word-distance, e.g. "credit" not within 1 word of "card"). |
+| **Words or phrases — Semantic Match** | Matches synonyms/intent; **up to 4 intents/keywords per card**; **post-call/chat only**. |
+| **Natural Language — Semantic Match** (generative AI) | Evaluates a natural-language true/false statement against the transcript. Requires **Rules - Generative AI** permission; **post-call/chat only**; uses transcript only. |
+| **Conditions** | Plus a large condition set: Sentiment (Time-period vs Entire-contact), Interruptions, Non-talk time, Talk time, Response time, Hold time, Loudness, Queues, Routing profile, Agent/hierarchy, AI agent (+ Escalation), Initiation method, Disconnect reason, ACW, Contact attributes (**max 5/rule**), etc. |
+
+**Note:** rules apply to **new/in-progress** contacts — they cannot be run against past/stored conversations. The "When" trigger is one of: post-call, real-time, post-chat, real-time chat, email analysis. **Word-logic:** for category rules, words **within a line are AND'd**, lines within a card are OR'd, and cards are AND'd together.
 
 ### Evaluation Modes
 
@@ -190,11 +187,14 @@ When a rule matches, Contact Lens can perform the following actions:
 
 | Action | Description |
 |---|---|
-| **Assign contact category** | Tag the contact with a named category (e.g., "Compliant", "Escalation"). |
-| **Generate EventBridge event** | Publish an event to Amazon EventBridge for downstream processing. |
-| **Create task** | Automatically create a Connect task for follow-up. |
-| **Send email notification** | Send an email alert to supervisors. |
-| **Supervisor alert** | Display alert on the real-time agent performance dashboard. |
+| **Assign contact category** | The matched category name is always assigned (and surfaces on the Contact details page / Current agent performance widget for real-time). |
+| **Generate EventBridge event** | Publish to EventBridge. Subscribe with `source = aws.connect` and a `detail-type` of: Contact Lens **Post Call / Realtime / Realtime Chat / Post Chat / Evaluation / Metrics** Rules Matched. Payload `detail` has `ruleName`, `actionName`, `instanceArn`, `contactArn`, `agentArn`, `queueArn`. |
+| **Create task** | Create a follow-up Connect task. **Not available for real-time chat.** Task gets its own CTR linked to the contact as Previous contact ID. |
+| **Send email notification** | Sent from `no-reply@amazonconnect.com` (not customizable); default limit **500/day** (exceeding blocks the instance 24h); SAML users need a secondary email. |
+| **Create Case** | Create a Connect Cases case. |
+| **Submit an automated evaluation** | Auto-submit an evaluation form. |
+
+There is **no discrete "Supervisor alert" action** — real-time supervisor alerting happens because the matched category surfaces on the **Current agent performance** widget (calls) / **Contact details** page (chat).
 
 ### Rule Management
 
@@ -210,17 +210,7 @@ Contact Lens can detect and redact personally identifiable information from tran
 
 ### Supported PII Entity Types
 
-- Credit/debit card numbers (`CREDIT_DEBIT_NUMBER`)
-- Social Security numbers
-- Names (`NAME`)
-- Addresses
-- Email addresses
-- Phone numbers
-- Bank account numbers
-- Date of birth
-- Usernames (`USERNAME`)
-- PINs
-- Other sensitive data as classified by the NLU model
+Redaction uses NLU to detect sensitive data such as **name, address, and credit card information**. You can **Redact All PII data** or **select specific entities** to redact — the full selectable list is shown in the block's **Data redaction** section in the console. Entity codes confirmed in the output schema include `CREDIT_DEBIT_NUMBER`, `NAME`, and `USERNAME` (the selected entities appear in `RedactionEntitiesRequested`). *(AWS docs don't publish a full text list of entity codes — choose from the console list rather than assuming codes.)*
 
 ### Redaction Targets
 
@@ -240,11 +230,10 @@ Contact Lens can detect and redact personally identifiable information from tran
 
 ### Configuration
 
-- PII redaction is configured per contact flow in the **Set recording and analytics behavior** block.
-- You choose which entity types to redact and whether to redact from transcript only, audio only, or both.
-- The original (unredacted) files can optionally be retained in a separate S3 location with restricted access.
-- For voice contacts, redaction is applied after the call disconnects.
-- For email contacts, redaction is applied after the email contact ends.
+- Configured in the recording/analytics block: **Redact sensitive data** → **Redact All PII data** (or pick specific entities) → **Data redaction replacement** mask (**Replace with placeholder PII** = `[PII]`, or `ENTITY_TYPE` = `[NAME]` etc.). For voice, redaction applies to the transcript **and** audio (silence) together — there is no transcript-only/audio-only toggle.
+- **Dynamic redaction** via a contact attribute (`redaction_option`, case-sensitive: `None` / `RedactedOnly` / `RedactedAndOriginal`) set by a Set-contact-attributes block or Lambda; language can be set dynamically too (`language`).
+- For voice, redaction is applied **after the call disconnects**; for email, after the email contact ends.
+- ⚠️ The **original (raw) analyzed file is the only place the complete conversation is stored** — deleting it leaves no record of what was redacted. You currently cannot download redacted chat files or voice transcripts.
 
 ### Important Limitations
 
@@ -256,13 +245,13 @@ Contact Lens can detect and redact personally identifiable information from tran
 
 ## Theme Detection
 
-Theme detection uses unsupervised machine learning to identify recurring topics across your contact center interactions.
+Theme detection groups contacts with similar issues to surface previously unknown / emerging themes (e.g. "cancel reservation", "delayed order"). It is **post-contact only** — it runs on the **issues detected** in already-analyzed contacts.
 
-- Automatically groups contacts by emerging themes without requiring predefined categories.
-- Helps identify new or trending issues that you haven't built categories for yet.
-- Available in the Contact Lens dashboard in the Amazon Connect console.
-- Themes are surfaced with representative phrases and contact counts.
-- Operates across a time window to detect patterns at scale.
+- **Generated from Contact search**, not a live dashboard: apply filters → **Save search** → **Generate themes report** (the button is enabled only with **≥ 300 contacts that have issues detected**).
+- A report covers the **3,000 most recent** contacts in the saved search; reports are retained **30 days**; the most recent **20** reports per saved search are kept.
+- Only contacts created **on or after 2023-01-30** are included.
+- Drill into a theme label to view its contacts, listen to recordings, and read transcripts.
+- Permissions: **Contact search - Access**, **Contact Lens - theme detection - Create/View**.
 
 ---
 
@@ -276,7 +265,7 @@ Contact Lens measures detailed talk time breakdowns for voice interactions:
 | **Agent talk time** | Total time the agent was speaking (`TalkTime.DetailsByParticipant.AGENT.TotalTimeMillis`). |
 | **Customer talk time** | Total time the customer was speaking (`TalkTime.DetailsByParticipant.CUSTOMER.TotalTimeMillis`). |
 | **Total talk time** | Combined agent + customer talk time (`TalkTime.TotalTimeMillis`). |
-| **Non-talk time** | Total silence duration — neither party speaking (`NonTalkTime.TotalTimeMillis`). Includes individual silence instances with timestamps. |
+| **Non-talk time** | Hold time **plus** any silence where both participants aren't talking for **more than 3 seconds** (`NonTalkTime.TotalTimeMillis`; the 3-second threshold isn't customizable). Searchable by duration or percentage (calls only). |
 | **Agent talk time %** | Agent talk time as a percentage of total conversation. |
 | **Customer talk time %** | Customer talk time as a percentage of total conversation. |
 | **Non-talk time %** | Silence as a percentage of total conversation. |
@@ -293,19 +282,21 @@ These metrics are valuable for coaching: excessive agent talk time may indicate 
 
 ## Response Time Metrics
 
+Response-time metrics are **chat-only**:
+
 | Metric | Description |
 |---|---|
-| **Agent greeting time** | Time from conversation start to the agent's first utterance. |
-| **Agent response time (avg)** | Average time the agent takes to respond after the customer finishes speaking. |
-| **Customer response time (avg)** | Average time the customer takes to respond after the agent finishes speaking. |
+| **Agent greeting time** | First response time — how fast the agent engaged after joining the chat. |
+| **Agent response time** | **Average and Maximum** time the agent takes to respond after the customer. |
+| **Customer response time** | **Average and Maximum** time the customer takes to respond after the agent. |
 
-These are particularly useful for chat where response delays are more visible to the customer.
+Searchable by average or maximum (with min/max supported values in the Rules feature specs).
 
 ---
 
 ## Key Highlights
 
-Contact Lens automatically identifies key highlights from the conversation using generative AI:
+Contact Lens automatically identifies key highlights. Issues, outcomes, and action items are detected via conversational analytics; the **post-contact summary** is the generative-AI capability (no specific foundation model is named in the docs):
 
 | Highlight | JSON Field | Description |
 |---|---|---|
@@ -356,14 +347,11 @@ Improve transcription accuracy for domain-specific terms (product names, medical
 
 ### Key Details
 
-- File must be in **LF** format (not CRLF).
-- One active (default) vocabulary per language per instance.
-- Up to **20** vocabulary files can be uploaded and activated simultaneously.
-- Processing states: **Processing** (validating) -> **Ready** (valid but not applied) -> **Ready (default)** (actively applied).
-- Deletion takes approximately **90 minutes**.
-- Transcription is a one-time event; new vocabularies are NOT applied retroactively.
-- Custom vocabularies apply to **speech analytics only** (not chat, since chat transcripts already exist).
-- Applied to both real-time and post-call analyses when set as default.
+- File must use **LF** line endings (CRLF is rejected); multi-word phrases use **hyphens, not spaces** (spaces → **Failed** state).
+- One active (default) vocabulary per language; up to **20** files can be uploaded and activated simultaneously. Underlying Amazon Transcribe limits: **≤ 100 files per AWS account**, **≤ 50 KB per file**, **≤ 256 chars per entry**, same Region as transcription.
+- States: **Processing** → **Ready** (valid, not applied) → **Ready (default)** (applied to both real-time and post-call) → **Deleting** → **Failed**. Only **Ready** files can be downloaded/viewed.
+- Deletion takes ~**90 minutes**. Transcription is one-time — vocabularies are **not** applied retroactively.
+- Speech analytics only (not chat). Permission: **Analytics and Optimization → Contact Lens - custom vocabularies** (default on Admin / CallCenterManager).
 
 ### APIs
 
@@ -408,11 +396,13 @@ The following table shows Contact Lens feature support by language. Languages ma
 | Japanese (Japan) | ja-JP | Yes | Yes | Yes | Yes |
 | Korean (South Korea) | ko-KR | Yes | Yes | Yes | Yes |
 
-### Post-Call + Real-Time (No Sentiment/Redaction)
+### Post-Call + Real-Time (No Redaction)
+
+*(Exception: **ar-AE** (Arabic Gulf) also supports **sentiment** — it's not a no-sentiment language. The others below are no-sentiment, no-redaction.)*
 
 | Language | Code |
 |---|---|
-| Arabic (Gulf)* | ar-AE |
+| Arabic (Gulf)* — has sentiment | ar-AE |
 | Arabic (Modern Standard)* | ar-SA |
 | Catalan (Spain)* | ca-ES |
 | Croatian (Croatia)* | hr-HR |
@@ -463,21 +453,18 @@ The following table shows Contact Lens feature support by language. Languages ma
 | Turkish (Turkey)* | tr-TR |
 | Zulu (South Africa)* | zu-ZA |
 
-Note: Language list expands regularly. Check AWS docs for the current list.
+Notes: The authoritative `supported-languages.html` table now also has **Amazon Connect AI Agents** and **Automated performance evaluations** columns (the latter excluded in Africa (Cape Town), Mumbai, Seoul, GovCloud US-West), and additional locales such as **zh-HK** (Cantonese — email/chat + summaries only) and AI-Agents-only locales (es-MX, en-SG, fr-BE, de-AT, nl-BE, ga-IE, …). `de-CH` has summaries+sentiment but **no redaction and no pattern rules**. Redaction `*` languages are unavailable in Africa (Cape Town) and GovCloud (US-West). The list changes — verify against the live table for a specific Region.
 
 ---
 
 ## External Voice System Integration
 
-Analyze audio from non-Connect voice systems (legacy PBX, third-party CCaaS).
+Apply Contact Lens analytics to calls handled by a **non-Connect** voice system — **not** by uploading audio files, but via **live audio replication using a Contact Lens Connector and SIPREC**. A read-only copy of the in-progress call audio is forked from your external system into Connect; the external call flow keeps operating normally for agents while Contact Lens produces real-time and post-call analytics on the replica.
 
-| Detail | Description |
-|---|---|
-| **Upload method** | Upload audio files to S3. |
-| **Supported formats** | WAV, MP3. |
-| **Processing** | Use Contact Lens APIs to process uploaded audio. |
-| **Results include** | Transcription, sentiment, categories, talk time metrics. |
-| **Use case** | Migrate analytics from legacy systems while maintaining consistent analysis across platforms. |
+- **Mechanism:** your Session Border Controller (SBC) sends a SIPREC replica of the call audio to the Contact Lens Connector's fully-qualified host name, plus call metadata. No phone number is claimed in Connect.
+- **Setup:** create an instance + add agents/hierarchies → request service-quota increases ("Contact Lens connectors per account", "Maximum active recording sessions from external voice systems per instance") → create a Contact Lens connector → configure the SBC to send SIPREC audio + metadata (supported `ContactCenterSystemTypes`/`SessionBorderControllerTypes` per Amazon Chime SDK `PutVoiceConnectorExternalSystemsConfiguration`) → grant security-profile perms (Analytics and Optimization – Contact Lens connectors – View/Edit; Channels and Flows – Flows – View) → create + associate a flow with a `Set recording and analytics behavior` block → optionally a Lambda to parse the SIPREC request + metadata.
+- **Agent identification is required:** if no agent is identified for a call, the replica call terminates and no recording/analytics are produced.
+- Pages: `contact-lens-integration.html`, `create-contact-lens-connector.html`, `configure-external-voice-system.html`, `callmetadata-contactlens-integration.html`, `contactlens-integration-multiregion.html`. (Distinct from `external-voice-transfer.html`, an unrelated outbound-transfer feature.)
 
 ---
 
@@ -513,11 +500,11 @@ The post-contact analytics JSON file includes the following top-level fields:
 
 | Method | Description |
 |---|---|
-| **ListRealtimeContactAnalysisSegmentsV2** | Stream real-time transcript and analytics segments for an in-progress contact. |
+| **`ListRealtimeContactAnalysisSegments`** | Real-time **voice** segments (service `connect-contact-lens`; 24h retention). |
+| **`ListRealtimeContactAnalysisSegmentsV2`** | Real-time **chat** segments (service `connect`; voice raises `InvalidRequestException`). |
 | **S3 analytics files** | Post-contact analytics written as JSON to the configured S3 bucket. |
 | **Contact Lens rules** | Managed via the Amazon Connect console or Rules APIs. |
 | **Data lake** | Contact Lens data available in the Connect analytics data lake for Athena queries. |
-| **Kinesis** | Real-time analytics segments can be streamed to Kinesis for custom processing. |
 
 ---
 
