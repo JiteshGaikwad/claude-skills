@@ -110,7 +110,7 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 ### Data Streaming
 - [streaming/data-streaming.md](streaming/data-streaming.md) — Kinesis setup, KMS encryption
 - [streaming/agent-event-streams.md](streaming/agent-event-streams.md) — Agent events data model
-- [streaming/contact-lens-streams.md](streaming/contact-lens-streams.md) — Real-time CL via Kinesis
+- [streaming/contact-lens-streams.md](streaming/contact-lens-streams.md) — Real-time segment streams to Kinesis Data Streams: enable via AssociateInstanceStorageConfig, Utterance partial transcripts, voice/chat data models
 - [streaming/eventbridge-events.md](streaming/eventbridge-events.md) — Contact events (11 types)
 
 ### Agent Experience
