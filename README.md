@@ -26,8 +26,7 @@ git clone https://github.com/JiteshGaikwad/claude-skills.git ~/.claude/skills/cl
 ### Single skill only
 
 ```bash
-# Copy just the skill you need
-cp -r skills/amazon-connect/ ~/.claude/skills/amazon-connect
+git clone https://github.com/JiteshGaikwad/claude-skills.git .claude/
 ```
 
 ### Project-level (single project)

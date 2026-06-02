@@ -37,11 +37,7 @@ Or it auto-triggers when working on Amazon Connect-related code.
 ## Installation
 
 ```bash
-# As part of the full skills repo
-git clone https://github.com/JiteshGaikwad/claude-skills.git ~/.claude/skills/claude-skills
-
-# Or standalone
-cp -r skills/amazon-connect/ ~/.claude/skills/amazon-connect
+git clone https://github.com/JiteshGaikwad/claude-skills.git .claude/
 ```
 
 ## Sources
