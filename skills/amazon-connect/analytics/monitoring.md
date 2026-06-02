@@ -1,6 +1,6 @@
 # Monitoring
 
-Amazon Connect monitoring spans live call/chat monitoring, CloudWatch metrics, CloudTrail logging, and EventBridge integration.
+Amazon Connect monitoring spans live call/chat monitoring, CloudWatch metrics, CloudTrail logging, and EventBridge integration. AWS recommends starting with a **monitoring plan** — define your goals, what data to monitor, how often, which tools (CloudWatch + CloudTrail), who performs monitoring, and who is notified on failure.
 
 ---
 
