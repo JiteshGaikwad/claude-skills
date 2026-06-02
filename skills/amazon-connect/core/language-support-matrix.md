@@ -123,7 +123,9 @@ Default system messages (such as idleness messages) are displayed to agents in t
 | --- | --- |
 | Chat message content | **Full Unicode** — chat with customers in any language. |
 | Quick responses (chat & email) | **English only.** |
-| Admin website (console UI) | Chinese (Simplified), Chinese (Traditional), English, French, German, Italian. |
+| Admin website (console UI) | Chinese (Simplified), Chinese (Traditional), English, French, German, Italian, Japanese, Korean, Portuguese (Brazilian), Spanish. |
+| Connect Cases (UI) | Same 10 as the admin website. |
+| Forecasting, capacity planning & scheduling (UI) | Chinese (Simplified), Chinese (Traditional), English (US), French (France), French (Canadian), German, Italian, Japanese, Korean, Portuguese (Brazilian), Spanish. |
 
 ### In-flight chat redaction (Conversational Analytics)
 
