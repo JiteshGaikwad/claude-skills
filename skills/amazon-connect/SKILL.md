@@ -47,7 +47,8 @@ All code examples and patterns use **AWS SDK v3 for JavaScript/TypeScript** only
 - [core/user-management.md](core/user-management.md) — Security profiles, hierarchy groups, bulk ops, agent status
 - [core/identity-management.md](core/identity-management.md) — SAML 2.0, AD, Connect-managed, approved origins/CORS
 - [core/customer-authentication.md](core/customer-authentication.md) — Customer auth (Cognito/JWT), communications widget auth
-- [core/service-linked-roles.md](core/service-linked-roles.md) — All Connect SLRs (core, campaigns, sync), KMS edge cases
+- [core/service-linked-roles.md](core/service-linked-roles.md) — All 5 Connect SLRs (core, campaigns, profile, sync, app-integrations), KMS edge cases
+- [core/iam-permissions-reference.md](core/iam-permissions-reference.md) — Per-console-page IAM permissions (companion services: ds/s3/kms/kinesis/ses/chime/cognito/profile/wisdom/voiceid/…)
 - [core/regions-and-feature-availability.md](core/regions-and-feature-availability.md) — Region availability, feature-by-region matrix, endpoints
 - [core/language-support-matrix.md](core/language-support-matrix.md) — Languages supported per feature (TTS, ASR, Contact Lens, UI)
 - [core/accessibility-and-browser-support.md](core/accessibility-and-browser-support.md) — Accessibility (ACR/screen readers), browser support, policy breakage fixes

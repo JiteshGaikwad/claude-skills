@@ -100,6 +100,16 @@ Backs **Amazon Connect Global Resiliency** — synchronizing configuration/resou
 
 **Permissions granted:** broad `connect:Create*/Update*/Delete*/Describe*/Batch*/List*/Search*/Associate*/Disassociate*/Get*/Import*/Tag*/Untag*` plus `cloudwatch:PutMetricData`, with a large **deny-list** (no `Start*/Stop*/Resume*/Suspend*`, no `*Contact(s)`, no `*MetricData*`, no `CreateInstance/DeleteInstance/ReplicateInstance/GetFederationToken`, no phone-number claim/release, no traffic-distribution-group actions). Created by `ReplicateInstance`.
 
+## AppIntegrations SLR: `AWSServiceRoleForAppIntegrations`
+
+| Property | Value |
+|---|---|
+| Role name | `AWSServiceRoleForAppIntegrations` |
+| Service principal (trust) | `app-integrations.amazonaws.com` |
+| Permissions policy | `AppIntegrationsServiceLinkedRolePolicy` |
+
+**Permissions granted:** `cloudwatch:PutMetricData` (namespace `AWS/AppIntegrations`); `appflow:DescribeConnectorEntity/ListConnectorEntities`; `appflow:DescribeConnectorProfiles/UseConnectorProfile` on `connector-profile/*`; `appflow:Delete/Describe/Start/Stop/UpdateFlow` + `DescribeFlowExecutionRecords` on `flow/FlowCreatedByAppIntegrations-*` (tagged `AppIntegrationsManaged=true`); `appflow:TagResource` on those flows. **Created automatically** when you create a data/event integration via Connect AI agents, Customer Profiles, or the Tasks widget (accounts with AppIntegrations resources created after Sept 30, 2022).
+
 ## Summary Table
 
 | Role | Trust principal | Policy | Used by |
@@ -108,3 +118,4 @@ Backs **Amazon Connect Global Resiliency** — synchronizing configuration/resou
 | `AWSServiceRoleForConnectCampaigns` | `connect-campaigns.amazonaws.com` | `AmazonConnectCampaignsServiceLinkedRolePolicy` | Outbound campaigns |
 | `AWSServiceRoleForProfile` | `profile.amazonaws.com` | `CustomerProfilesServiceLinkedRolePolicy` | Customer Profiles (one per domain) |
 | `AWSServiceRoleForAmazonConnectSynchronization` | `synchronization.connect.amazonaws.com` | `AmazonConnectSynchronizationServiceRolePolicy` | Global Resiliency / cross-Region sync |
+| `AWSServiceRoleForAppIntegrations` | `app-integrations.amazonaws.com` | `AppIntegrationsServiceLinkedRolePolicy` | AppIntegrations (Customer Profiles / AI agents / Tasks integrations) |

@@ -89,9 +89,13 @@ Connect supports **identity-based policies and service-linked roles only — no 
 | `connect:StorageResourceType` | Restrict storage-config associations (e.g. `CONTACT_TRACE_RECORDS`) |
 | `connect:SearchContactsByContactAnalysis` | Restrict Contact Lens transcript search (e.g. value `Transcript`) |
 | `connect:FlowType` / `connect:Channel` / `connect:ContactInitiationMethod` / `connect:UserArn` | Restrict by flow type, channel, initiation method, or user |
-| `aws:ResourceTag/{TagKey}` | Restrict based on resource tags |
+| `connect:ContactAssociationId` / `connect:PreferredUserArn` / `connect:ExpressionValue` | Restrict by contact-association, preferred agent, or expression value |
+| `connect:SearchTag/{TagKey}` / `connect:PrimaryAttribute/{PrimaryAttribute}` | Search-tag and primary-attribute scoping |
+| `aws:ResourceTag/{TagKey}` (or `connect:ResourceTag/{TagKey}`) | Restrict based on resource tags |
 | `aws:RequestTag/{TagKey}` | Require specific tags on creation |
 | `aws:TagKeys` | Control which tag keys can be used |
+
+(The canonical, full Actions / Resources / Condition-keys tables — ~33 resource types incl. `ai-agent`, `evaluation-form`, `data-table`, `traffic-distribution-group`, `vocabulary`, `quick-connect`, `rule`, `prompt`, `integration-association` — are in the AWS Service Authorization Reference. For per-console-page admin permissions see [iam-permissions-reference.md](iam-permissions-reference.md).)
 
 ### Service-Linked Role
 
@@ -142,6 +146,16 @@ Use case examples:
 - Restrict supervisors to only manage queues tagged with their team
 - Allow flow developers to edit only flows tagged with their department
 - Limit metric access to users tagged with a specific business unit
+
+### Common policy-example patterns (from AWS docs)
+
+- **Create users by request tag:** `Allow connect:CreateUser` + `connect:TagResource`, condition `aws:RequestTag/Owner = TeamA`. **Describe/update users by resource tag:** `connect:DescribeUser`/`UpdateUser*`, condition `aws:ResourceTag/Department = Test`.
+- **Deny everything on an instance:** `Deny connect:*` with `connect:instanceId = {id}` (or on `instance/{id}*`). **Deny delete/update users:** on `.../instance/{id}/agent/*` (note the `agent` segment).
+- **Recording on a contact:** `Allow connect:StartContactRecording/Stop/Suspend/ResumeContactRecording` on `.../instance/{id}/contact/*` (contactId is dynamic → `*`).
+- **Restrict which resources can be associated:** Lambda → `connect:AssociateLambdaFunction` + `lambda:AddPermission` on the specific function (SLR isn't used to invoke); Kinesis/S3 → `connect:Associate/UpdateInstanceStorageConfig` with `connect:StorageResourceType = CONTACT_TRACE_RECORDS`, plus `iam:PutRolePolicy` scoped to `arn:aws:iam::{acct}:role/aws-service-role/connect.amazonaws.com/*`.
+- **Replica-Region phone-number queue rules:** for `CreateQueue`/`UpdateQueueOutboundCallerConfig`, list the number in **both** V1 (`.../instance/{id}/phone-number/{id}`) and V2 (`phone-number/{id}`) ARNs.
+- **Restrict Contact Lens transcript search:** allow `connect:SearchContacts` on the instance, then `Deny connect:SearchContacts` with `ForAnyValue:StringEquals connect:SearchContactsByContactAnalysis = ["Transcript"]`.
+- **Related-service resources by ARN:** Customer Profiles `profile:*` on `arn:aws:profile:...:domains/{name}`; Voice ID `voiceid:*` on `arn:aws:voiceid:...:domain/{name}`; AI agents `wisdom:QueryAssistant` on `arn:aws:wisdom:...:assistant/{id}` (or tag-scope by `aws:ResourceTag/AmazonConnectEnabled = True`); campaigns `connect-campaigns:*` on `campaign/{id}` (tag-scope by `aws:ResourceTag/owner = <instance ARN>`; note `ListCampaigns`/`GetCampaignStateBatch` can't be tag-restricted).
 
 ## Security Profiles
 
@@ -250,6 +264,12 @@ The baseline is **AWS KMS encryption with AWS-owned keys**; data-encryption keys
 ## Compliance
 - Connect is in scope for multiple AWS compliance programs and is **HIPAA-eligible** and usable in compliance with **GDPR**. The Connect compliance-validation page does not hardcode a program list — for the authoritative, current scope (PCI DSS, SOC, ISO, FedRAMP, etc.) see **AWS Services in Scope by Compliance Program**, and download audit reports via **AWS Artifact**.
 - Your compliance responsibility is determined by the sensitivity of your data and applicable laws/regulations (shared-responsibility model).
+
+## Data Use Opt-Out (service improvement)
+
+By default AWS may use "Your Content" to develop/improve Connect. You can opt out via an **AWS Organizations AI services opt-out policy** (accounts must be centrally managed by AWS Organizations); only Amazon employees access the data. **Feature-level opt-outs are being discontinued on March 31, 2026** for: Contact Lens, Customer Profiles, forecasting/capacity-planning/scheduling, Outbound campaigns, and Connect AI agents — use the Organizations opt-out policy instead.
+
+> **KMS encryption-context (CMK policy scoping):** Voice ID uses encryption context `aws:voiceid:domain:arn` and `kms:ViaService` `voiceid.{region}.amazonaws.com`; Outbound campaigns use `aws:accountId` + `aws:connect:instanceId` and ViaService `connect-campaigns.{region}.amazonaws.com`. AI-agent (Wisdom) knowledge docs use BYOK-or-service-owned keys in S3 but **OpenSearch search indices always use a service-owned key**; Cases case-event payloads pass transiently (~seconds) through EventBridge encrypted with AWS-owned keys.
 
 ## Infrastructure Security
 - Connect is a **managed service** — you access it via published AWS API calls, callable from **any network location**. There is no customer-VPC isolation; restrict network access via authentication-profile IP allow-lists and IAM source-IP conditions.
