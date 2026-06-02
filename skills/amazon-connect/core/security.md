@@ -28,7 +28,11 @@ Resource types addressable in Connect ARNs: **Instance, Contact, User, Routing p
 | `AmazonConnectVoiceIDFullAccess` | Full Voice ID access; also needs a companion custom policy and a KMS key policy granting `kms:Decrypt`/`CreateGrant`/`DescribeKey`. |
 | `AmazonConnectServiceLinkedRolePolicy` | Permissions policy on the Connect service-linked role (see below). |
 
-Connect supports **identity-based policies and service-linked roles only — no resource-based policies or ACLs**; cross-account access is via assumed roles.
+Connect supports **identity-based policies and service-linked roles only — no resource-based policies or ACLs**; cross-account access is via assumed roles. Maximum-permission policy types that can apply on top: **permissions boundaries**, **SCPs** and **RCPs** (AWS Organizations), and **session policies**.
+
+**IAM troubleshooting:**
+- **`iam:PassRole` not authorized** — to let a user configure a feature that hands a role to Connect, their policy must allow `iam:PassRole` for that role.
+- **Access for people outside your account** — create an IAM **role** others can assume (you choose who's trusted); Connect has no resource-based policies/ACLs, so cross-account/third-party/federated access is all role-based.
 
 #### Example: Read-Only IAM Policy
 
